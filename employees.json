@@ -1,0 +1,66 @@
+{
+  "celula_A": [
+    {
+      "id": "emp_001",
+      "nombre": "Ana",
+      "apellido1": "García",
+      "apellido2": "López",
+      "cedula": "6662",
+      "password": "password",
+      "public_key": null,
+      "firma": null
+    },
+    {
+      "id": "emp_002",
+      "nombre": "Carlos",
+      "apellido1": "Rodríguez",
+      "apellido2": "Martínez",
+      "cedula": "5243",
+      "password": "password",
+      "public_key": null,
+      "firma": null
+    },
+    {
+      "id": "emp_003",
+      "nombre": "María",
+      "apellido1": "Fernández",
+      "apellido2": "Gómez",
+      "cedula": "1350",
+      "password": "password",
+      "public_key": null,
+      "firma": null
+    }
+  ],
+  "celula_B": [
+    {
+      "id": "emp_004",
+      "nombre": "Juan",
+      "apellido1": "Pérez",
+      "apellido2": "Hernández",
+      "cedula": "7497",
+      "password": "password",
+      "public_key": null,
+      "firma": null
+    },
+    {
+      "id": "emp_005",
+      "nombre": "Laura",
+      "apellido1": "Díaz",
+      "apellido2": "Castillo",
+      "cedula": "9632",
+      "password": "password",
+      "public_key": null,
+      "firma": null
+    },
+    {
+      "id": "emp_006",
+      "nombre": "Pedro",
+      "apellido1": "Sánchez",
+      "apellido2": "Ramírez",
+      "cedula": "8944",
+      "password": "password",
+      "public_key": null,
+      "firma": null
+    }
+  ]
+}

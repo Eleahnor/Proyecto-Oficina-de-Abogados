@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Director - Sistema de Llaves</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        .login-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .login-panel h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            /* background: #27ae60; */
+            
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #219a52;
+        }
+
+        .btn-secondary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #2980b9;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e67e22;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .celulas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .celula-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3498db;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .celula-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .celula-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .celula-card p {
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+
+        .members-list {
+            margin-top: 15px;
+        }
+
+        .member-item {
+            background: #ecf0f1;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #27ae60;
+        }
+
+        .member-signature {
+            font-size: 11px;
+            color: #7f8c8d;
+            word-break: break-all;
+            margin-top: 5px;
+        }
+
+        .key-display {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .status-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .status-danger {
+            background: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginSection" class="login-container">
+            <div class="login-panel">
+                <h2>🔐 Acceso Director</h2>
+                <p style="margin-bottom: 20px; color: #7f8c8d;">Firma Pearson Specter Litt</p>
+                
+                <div class="form-group">
+                    <label for="directorPassword">Contraseña:</label>
+                    <input type="password" id="directorPassword" class="form-control" placeholder="Ingrese la contraseña" value="password">
+                </div>
+                <button onclick="login()" class="btn btn-primary" style="width: 100%;">Log In</button>
+            </div>
+        </div> 
+
+        <!-- Sección Principal del Director -->
+        <div id="mainSection" class="hidden">
+            <!-- Header -->
+            <div class="header">
+                <h1>👩🏾‍⚖️ Jessica Pearson</h1>
+                <p>Gestión de células y verificación de firmas digitales</p>
+            </div>
+
+            <div class="panel">
+                <h2>🔑 Llaves del Director</h2>
+                <button onclick="generateDirectorKeys()" class="btn btn-primary">Generar Mis Llaves</button>
+                <button onclick="showDirectorKeys()" class="btn btn-secondary">Ver Mis Llaves</button>
+                
+                <div id="directorKeysInfo" style="margin-top: 15px;"></div>
+            </div>
+
+            <div class="panel">
+                <h2>✒️ Firma de documentos</h2>
+                <button onclick="generateDirectorKeys()" class="btn btn-primary">Firmar documento</button>
+                <button onclick="showDirectorKeys()" class="btn btn-secondary">Ver Mis Firmas</button>
+                
+                <div id="directorKeysInfo" style="margin-top: 15px;"></div>
+            </div>
+
+            <div class="panel">
+                <h2>🏢 Células de Trabajo</h2>
+                <div id="celulasContainer" class="celulas-grid">
+                </div>
+            </div>
+
+            <div id="celulaDetails" class="panel hidden">
+                <h2 id="celulaDetailsTitle">Detalles de Célula</h2>
+                <button onclick="hideCelulaDetails()" class="btn btn-secondary">← Volver a Células</button>
+                <button onclick="distributeKeysToCelula()" class="btn btn-primary">Distribuir Llave Simétrica</button>
+                
+                <div id="celulaMembers" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <div id="messageArea"></div>
+    </div>
+
+    <script>
+        let currentCelula = null;
+
+        function showMessage(message, type = 'success') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 5000);
+        }
+
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                showMessage('Error de conexión: ' + error.message, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+
+        function login() {
+            const password = document.getElementById('directorPassword').value.trim();
+            
+            apiCall('/api/login', {
+                method: 'POST',
+                body: JSON.stringify({ password: password })
+            }).then(data => {
+                if (data.success) {
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('mainSection').classList.remove('hidden');
+                    showMessage(data.message);
+                    loadCelulas();
+                    loadDirectorKeysInfo();
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            });
+        }
+
+        function loadCelulas() {
+            apiCall('/api/get-celulas').then(data => {
+                const container = document.getElementById('celulasContainer');
+                
+                if (data.celulas && data.celulas.length > 0) {
+                    container.innerHTML = data.celulas.map(celula => `
+                        <div class="celula-card" onclick="showCelulaDetails('${celula.nombre}')">
+                            <h3>${celula.nombre.replace('_', ' ').toUpperCase()}</h3>
+                            <p><strong>Miembros:</strong> ${celula.miembros_count}</p>
+                            <p><strong>Con llaves:</strong> ${celula.miembros.filter(m => m.tiene_llave_publica).length}</p>
+                            <p><strong>Con firmas:</strong> ${celula.miembros.filter(m => m.firma).length}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p>No hay células configuradas.</p>';
+                }
+            });
+        }
+
+        function showCelulaDetails(celulaName) {
+            currentCelula = celulaName;
+            
+            apiCall(`/api/get-celula/${celulaName}`).then(data => {
+                if (data.error) {
+                    showMessage(data.error, 'error');
+                    return;
+                }
+
+                document.getElementById('celulaDetailsTitle').textContent = 
+                    `Célula: ${celulaName.replace('_', ' ').toUpperCase()}`;
+                
+                const membersContainer = document.getElementById('celulaMembers');
+                membersContainer.innerHTML = `
+                    <h3>Miembros (${data.miembros.length})</h3>
+                    ${data.miembros.map(member => `
+                        <div class="member-item">
+                            <strong>${member.nombre_completo}</strong>
+                            <span class="status-badge ${member.tiene_llave_publica ? 'status-success' : 'status-warning'}">
+                                ${member.tiene_llave_publica ? 'CON LLAVE' : 'SIN LLAVE'}
+                            </span>
+                            <span class="status-badge ${member.tiene_firma ? 'status-success' : 'status-danger'}">
+                                ${member.tiene_firma ? 'FIRMADO' : 'SIN FIRMA'}
+                            </span>
+                            <div><small>Cédula: ${member.cedula} | ID: ${member.id}</small></div>
+                            ${member.firma ? `
+                                <div class="member-signature">
+                                    <strong>Firma:</strong> ${member.firma.substring(0, 50)}...
+                                </div>
+                                <button onclick="verifySignature('${member.id}')" class="btn btn-warning" style="margin-top: 5px; padding: 5px 10px; font-size: 12px;">
+                                    Verificar Firma
+                                </button>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                `;
+
+                document.getElementById('celulaDetails').classList.remove('hidden');
+            });
+        }
+
+        function hideCelulaDetails() {
+            document.getElementById('celulaDetails').classList.add('hidden');
+            currentCelula = null;
+        }
+
+        function generateDirectorKeys() {
+            apiCall('/api/generate-director-keys', { method: 'POST' }).then(data => {
+                if (data.success) {
+                    showMessage(data.message);
+                    loadDirectorKeysInfo();
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            });
+        }
+
+        function showDirectorKeys() {
+            const keysInfo = document.getElementById('directorKeysInfo');
+            apiCall('/api/director-keys').then(data => {
+                if (data.has_keys) {
+                    keysInfo.innerHTML = `
+                        <div class="key-display">
+                            <strong>Llave Pública del Director:</strong><br>
+                            ${data.public_key}
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <strong>Llaves Simétricas:</strong> ${data.symmetric_keys_count}
+                        </div>
+                    `;
+                } else {
+                    keysInfo.innerHTML = '<p>No hay llaves generadas. Genere las llaves primero.</p>';
+                }
+            });
+        }
+
+        function loadDirectorKeysInfo() {
+            apiCall('/api/director-keys').then(data => {
+                // Solo actualizar el estado, no mostrar las llaves completas
+            });
+        }
+
+        function distributeKeysToCelula() {
+            if (!currentCelula) {
+                showMessage('Seleccione una célula primero', 'error');
+                return;
+            }
+
+            const keyName = prompt('Nombre para la llave simétrica:', `llave_${currentCelula}`);
+            if (!keyName) return;
+
+            apiCall('/api/distribute-keys', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    celula_name: currentCelula,
+                    key_name: keyName
+                })
+            }).then(data => {
+                if (data.success) {
+                    let message = data.message + '\n\n';
+                    
+                    if (data.members_without_keys.length > 0) {
+                        message += `Miembros sin llaves: ${data.members_without_keys.join(', ')}\n\n`;
+                    }
+                    
+                    message += 'Llaves encriptadas generadas para cada miembro.';
+                    showMessage(message);
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            });
+        }
+
+        function verifySignature(employeeId) {
+            const message = prompt('Mensaje para verificar la firma:', 'Mensaje de verificación del director');
+            if (!message) return;
+
+            apiCall('/api/verify-signature', {
+                method: 'POST',
+                body: JSON.stringify({
+                    employee_id: employeeId,
+                    message: message
+                })
+            }).then(data => {
+                if (data.success) {
+                    showMessage(`Firma ${data.is_valid ? 'VÁLIDA' : 'INVÁLIDA'} - ${data.message}`, 
+                               data.is_valid ? 'success' : 'error');
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            });
+        }
+
+        // Permitir login con Enter
+        document.getElementById('directorPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>

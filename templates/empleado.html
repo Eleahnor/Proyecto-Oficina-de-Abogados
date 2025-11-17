@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empleado - Sistema de Llaves</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+
+        .login-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .login-panel h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e68900;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .key-display {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .status-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .info-card {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-card h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sección de Login -->
+        <div id="loginSection" class="login-container">
+            <div class="login-panel">
+                <h2>🔐 Acceso Empleado</h2>
+                <p style="margin-bottom: 20px; color: #666;">Sistema de Gestión de Llaves</p>
+                
+                <div class="form-group">
+                    <label for="empleadoId">ID de Empleado:</label>
+                    <input type="text" id="empleadoId" class="form-control" placeholder="Ej: emp_001, emp_002, etc.">
+                </div>
+                <div class="form-group">
+                    <label for="empleadoPassword">Contraseña:</label>
+                    <input type="password" id="empleadoPassword" class="form-control" placeholder="password" value="password">
+                </div>
+                <button onclick="login()" class="btn btn-primary" style="width: 100%;">Acceder como Empleado</button>
+                
+                <div style="margin-top: 20px; font-size: 12px; color: #666;">
+                    <strong>Credenciales de prueba:</strong><br>
+                    IDs: emp_001 a emp_006<br>
+                    Contraseña: password
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Principal del Empleado -->
+        <div id="mainSection" class="hidden">
+            <!-- Header -->
+            <div class="header">
+                <h1>👤 Panel del Empleado</h1>
+                <p id="welcomeMessage">Bienvenido al sistema de llaves</p>
+            </div>
+
+            <!-- Información del Empleado -->
+            <div class="info-card">
+                <h3>📋 Mi Información</h3>
+                <div id="empleadoInfo"></div>
+                <button onclick="logout()" class="btn btn-warning" style="margin-top: 10px;">Cerrar Sesión</button>
+            </div>
+
+            <div class="grid">
+                <!-- Panel de Generación de Llaves -->
+                <div class="panel">
+                    <h2>🔑 Mis Llaves</h2>
+                    <p style="margin-bottom: 15px; color: #666;">
+                        Genera tu par de llaves criptográficas. La llave pública se guardará en el sistema y la privada localmente en tu dispositivo.
+                    </p>
+                    <button onclick="generateKeys()" class="btn btn-primary">Generar Mis Llaves</button>
+                    <button onclick="showMyPublicKey()" class="btn btn-secondary">Ver Mi Llave Pública</button>
+                    
+                    <div id="keysInfo" style="margin-top: 15px;"></div>
+                </div>
+
+                <!-- Panel de Firmas Digitales -->
+                <div class="panel">
+                    <h2>📝 Firma Digital</h2>
+                    <p style="margin-bottom: 15px; color: #666;">
+                        Crea una firma digital que el director puede verificar.
+                    </p>
+                    <div class="form-group">
+                        <label for="signatureMessage">Mensaje a firmar:</label>
+                        <textarea id="signatureMessage" class="form-control" placeholder="Ingrese el mensaje que desea firmar...">Mensaje firmado por el empleado</textarea>
+                    </div>
+                    <button onclick="createSignature()" class="btn btn-primary">Crear Firma Digital</button>
+                    
+                    <div id="signatureInfo" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- Panel de Desencriptación -->
+            <div class="panel">
+                <h2>🔓 Desencriptar Llave</h2>
+                <p style="margin-bottom: 15px; color: #666;">
+                    Si el director te ha enviado una llave simétrica encriptada, puedes desencriptarla aquí usando tu llave privada.
+                </p>
+                <div class="form-group">
+                    <label for="encryptedKey">Llave Encriptada (Base64):</label>
+                    <textarea id="encryptedKey" class="form-control" placeholder="Pegue aquí la llave encriptada que recibió..."></textarea>
+                </div>
+                <button onclick="decryptKey()" class="btn btn-primary">Desencriptar Llave</button>
+                
+                <div id="decryptionResult" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <!-- Área de Mensajes -->
+        <div id="messageArea"></div>
+    </div>
+
+    <script>
+        function showMessage(message, type = 'success') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 5000);
+        }
+
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                showMessage('Error de conexión: ' + error.message, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+
+        function login() {
+            const empleadoId = document.getElementById('empleadoId').value.trim();
+            const password = document.getElementById('empleadoPassword').value.trim();
+            
+            if (!empleadoId || !password) {
+                showMessage('Por favor ingrese ID y contraseña', 'error');
+                return;
+            }
+
+            apiCall('/api/login', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    empleado_id: empleadoId, 
+                    password: password 
+                })
+            }).then(data => {
+                if (data.success) {
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('mainSection').classList.remove('hidden');
+                    document.getElementById('welcomeMessage').textContent = `Bienvenido ${data.empleado_info.nombre_completo}`;
+                    showMessage(data.message);
+                    loadEmpleadoInfo();
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            });
+        }
+
+        function loadEmpleadoInfo() {
+            apiCall('/api/empleado-info').then(data => {
+                if (data.success) {
+                    const empleado = data.empleado_info;
+                    const infoDiv = document.getElementById('empleadoInfo');
+                    
+                    infoDiv.innerHTML = `
+                        <p><strong>Nombre:</strong> ${empleado.nombre_completo}</p>
+                        <p><strong>Cédula:</strong> ${empleado.cedula}</p>
+                        <p><strong>Célula:</strong> ${empleado.celula}</p>
+                        <p><strong>ID:</strong> ${empleado.id}</p>
+                        <p>
+                            <strong>Estado de Llaves:</strong>
+                            <span class="status-badge ${data.tiene_llave_privada ? 'status-success' : 'status-danger'}">
+                                ${data.tiene_llave_privada ? 'LLAVE PRIVADA LOCAL' : 'SIN LLAVE PRIVADA'}
+                            </span>
+                            <span class="status-badge ${empleado.tiene_llave_publica ? 'status-success' : 'status-warning'}">
+                                ${empleado.tiene_llave_publica ? 'LLAVE PÚBLICA EN SISTEMA' : 'SIN LLAVE PÚBLICA'}
+                            </span>
+                            <span class="status-badge ${empleado.tiene_firma ? 'status-success' : 'status-warning'}">
+                                ${empleado.tiene_firma ? 'CON FIRMA' : 'SIN FIRMA'}
+                            </span>
+                        </p>
+                    `;
+                }
+            });
+        }
+
+        function generateKeys() {
+            apiCall('/api/generate-empleado-keys', { method: 'POST' }).then(data => {
+                if (data.success) {
+                    showMessage(data.message + ' - ' + data.note);
+                    loadEmpleadoInfo();
+                    
+                    // Mostrar la llave pública generada
+                    const keysInfo = document.getElementById('keysInfo');
+                    keysInfo.innerHTML = `
+                        <div class="alert alert-success">${data.message}</div>
+                        <div class="key-display">
+                            <strong>Tu Llave Pública (guardada en el sistema):</strong><br>
+                            ${data.public_key}
+                        </div>
+                        <p style="margin-top: 10px; color: #666;">
+                            <strong>📝 Nota:</strong> Tu llave privada ha sido guardada localmente en el archivo <code>private_key_[tu_id].txt</code>
+                        </p>
+                    `;
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            });
+        }
+
+        function showMyPublicKey() {
+            apiCall('/api/empleado-info').then(data => {
+                if (data.success && data.empleado_info.public_key) {
+                    const keysInfo = document.getElementById('keysInfo');
+                    keysInfo.innerHTML = `
+                        <div class="key-display">
+                            <strong>Tu Llave Pública en el Sistema:</strong><br>
+                            ${data.empleado_info.public_key}
+                        </div>
+                    `;
+                } else {
+                    showMessage('No tienes una llave pública en el sistema. Genera tus llaves primero.', 'error');
+                }
+            });
+        }
+
+        function createSignature() {
+            const message = document.getElementById('signatureMessage').value.trim();
+            
+            if (!message) {
+                showMessage('Por favor ingrese un mensaje para firmar', 'error');
+                return;
+            }
+
+            apiCall('/api/create-signature', {
+                method: 'POST',
+                body: JSON.stringify({ message: message })
+            }).then(data => {
+                const signatureInfo = document.getElementById('signatureInfo');
+                
+                if (data.success) {
+                    signatureInfo.innerHTML = `
+                        <div class="alert alert-success">${data.message}</div>
+                        <p><strong>Mensaje firmado:</strong> ${data.signed_message}</p>
+                        <div class="key-display">
+                            <strong>Firma Digital:</strong><br>
+                            ${data.signature}
+                        </div>
+                        <p style="margin-top: 10px; color: #666;">
+                            El director puede verificar esta firma usando tu llave pública.
+                        </p>
+                    `;
+                    showMessage(data.message);
+                    loadEmpleadoInfo();
+                } else {
+                    signatureInfo.innerHTML = `<div class="alert alert-error">${data.error}</div>`;
+                }
+            });
+        }
+
+        function decryptKey() {
+            const encryptedKey = document.getElementById('encryptedKey').value.trim();
+            
+            if (!encryptedKey) {
+                showMessage('Por favor ingrese una llave encriptada', 'error');
+                return;
+            }
+
+            apiCall('/api/decrypt-key', {
+                method: 'POST',
+                body: JSON.stringify({ encrypted_key: encryptedKey })
+            }).then(data => {
+                const decryptionResult = document.getElementById('decryptionResult');
+                
+                if (data.success) {
+                    decryptionResult.innerHTML = `
+                        <div class="alert alert-success">${data.message}</div>
+                        <p><strong>Llave Simétrica (Hex):</strong> ${data.symmetric_key_hex}</p>
+                        <p><strong>Llave Simétrica (Base64):</strong> ${data.symmetric_key_b64}</p>
+                        <p style="margin-top: 10px; color: #666;">
+                            Esta llave simétrica puede ser usada para encriptar/desencriptar mensajes con AES.
+                        </p>
+                    `;
+                } else {
+                    decryptionResult.innerHTML = `<div class="alert alert-error">${data.error}</div>`;
+                }
+            });
+        }
+
+        function logout() {
+            apiCall('/api/logout', { method: 'POST' }).then(() => {
+                document.getElementById('mainSection').classList.add('hidden');
+                document.getElementById('loginSection').classList.remove('hidden');
+                showMessage('Sesión cerrada exitosamente');
+            });
+        }
+
+        // Permitir login con Enter
+        document.getElementById('empleadoPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>
