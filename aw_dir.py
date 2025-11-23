@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, session
-from key_exchange_core import KeyExchangeSystem
+from mainhearth import signverify
 from mock_data import load_employee_data, update_employee_public_key, update_employee_signature
 import json
 import os
@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.secret_key = 'director-secret-key-2024'
 
 # Almacenamiento en memoria
-director_system = KeyExchangeSystem("director")
+director_system = signverify("director")
 
 @app.route('/')
 def index():
@@ -197,7 +197,6 @@ def get_director_keys():
     })
 
 if __name__ == '__main__':
-    # Asegurarse de que los datos de empleados existan
     from mock_data import load_employee_data
     load_employee_data()
     

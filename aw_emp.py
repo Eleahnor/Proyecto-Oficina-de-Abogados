@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, session
-from key_exchange_core import KeyExchangeSystem
+from mainhearth import signverify
 from mock_data import load_employee_data, update_employee_public_key, update_employee_signature
 import json
 import os
@@ -41,7 +41,7 @@ def login_empleado():
         }
         
         # Inicializar sistema de llaves para este empleado
-        empleado_system = KeyExchangeSystem(empleado_id)
+        empleado_system = signverify(empleado_id)
         
         # Intentar cargar llave privada si existe
         if empleado_system.load_privk(empleado_id):
@@ -64,7 +64,7 @@ def generate_empleado_keys():
         return jsonify({'error': 'Empleado no autenticado'}), 401
     
     # Crear sistema de llaves para este empleado
-    empleado_system = KeyExchangeSystem(empleado_id)
+    empleado_system = signverify(empleado_id)
     
     # Generar par de llaves
     public_key_pem = empleado_system.generate_key_pair()
@@ -91,7 +91,7 @@ def create_signature():
         return jsonify({'error': 'Empleado no autenticado'}), 401
     
     # Cargar sistema de llaves del empleado
-    empleado_system = KeyExchangeSystem(empleado_id)
+    empleado_system = signverify(empleado_id)
     
     if not empleado_system.load_privk(empleado_id):
         return jsonify({'error': 'Debes generar tus llaves primero'}), 400
@@ -146,7 +146,7 @@ def get_empleado_info():
         }
         
         # Verificar si tiene llave privada local
-        empleado_system = KeyExchangeSystem(empleado_id)
+        empleado_system = signverify(empleado_id)
         tiene_llave_privada = empleado_system.load_privk(empleado_id)
         
         return jsonify({
@@ -171,7 +171,7 @@ def decrypt_key():
         return jsonify({'error': 'Llave encriptada requerida'}), 400
     
     # Cargar sistema de llaves del empleado
-    empleado_system = KeyExchangeSystem(empleado_id)
+    empleado_system = signverify(empleado_id)
     
     if not empleado_system.load_privk(empleado_id):
         return jsonify({'error': 'Debes generar tus llaves primero'}), 400
