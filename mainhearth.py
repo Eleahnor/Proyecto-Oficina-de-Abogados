@@ -139,7 +139,6 @@ class signverify:
     
     def verify_signature(self, signature_package, file_path):
         try:
-            # verificar si se alteró el doc
             current_hash = self.calculate_document_hash(file_path)
             if signature_package['document_hash'] != current_hash:
                 print(f"El documento ha sido modificado !!!!!!!!")
@@ -244,9 +243,7 @@ class signverify:
             print(f"\n⚠️  Solo {valid_signatures} de {num_firmas} firmas son válidas.")
             return False
     
-    def collect_signatures_interactive(self):
-        print("\n=== registrar multiples firmas ===")
-        
+    def collect_signatures_interactive(self):        
         while True:
             try:
                 num_firmas = int(input("\n¿Cuántas firmas deseas recoger? "))
@@ -273,7 +270,6 @@ class signverify:
         return self.collect_signatures(signature_files)
     
     def save_signature_package(self, signature_package, output_path=None):
-        """Guarda un paquete de firma individual"""
         if output_path is None:
             output_path = f"firma_{self.user_id}.json"
         
@@ -283,7 +279,6 @@ class signverify:
         return output_path
     
     def collect_signatures(self, signature_files, output_file="todas_las_firmas.json"):
-        """Recolecta múltiples firmas en un solo archivo"""
         all_signatures = {'signatures': []}
         
         print(f"\nRecolectando {len(signature_files)} firmas...")
@@ -351,41 +346,6 @@ class signverify:
         except FileNotFoundError:
             return False
 
-# Ejemplo de uso interactivo
-def ejemplo_interactivo():
-    print("=== SISTEMA INTERACTIVO DE VERIFICACIÓN DE FIRMAS ===\n")
-    
-    # Configurar la plataforma
-    plataforma = signverif("plataforma")
-    
-    # Cargar o generar llaves
-    if not plataforma.load_public_keys_from_file("public_keys.json"):
-        print("Generando nuevas llaves para la plataforma...")
-        plataforma.gen_kpair()
-    
-    # Menú principal
-    while True:
-        print("\n" + "="*50)
-        print("MENÚ PRINCIPAL")
-        print("="*50)
-        print("1. Registrar llaves públicas de usuarios")
-        print("2. Verificar firmas de documento")
-        print("3. Recolectar firmas en un archivo")
-        print("4. Salir")
-        
-        opcion = input("\nSelecciona una opción (1-4): ").strip()
-        
-        if opcion == "1":
-            registrar_llaves_publicas(plataforma)
-        elif opcion == "2":
-            verificar_firmas(plataforma)
-        elif opcion == "3":
-            recolectar_firmas(plataforma)
-        elif opcion == "4":
-            print("¡Hasta luego!")
-            break
-        else:
-            print("Opción no válida. Por favor, selecciona 1-4.")
 
 def registrar_llaves_publicas(plataforma):
     print("\n--- REGISTRO DE LLAVES PÚBLICAS ---")
@@ -419,7 +379,6 @@ def registrar_llaves_publicas(plataforma):
         except FileNotFoundError:
             print(f"✗ Archivo no encontrado: {public_key_file}")
     
-    # Guardar llaves públicas
     plataforma.save_public_keys_to_file("public_keys.json")
     print("\n✓ Todas las llaves públicas guardadas en public_keys.json")
 
@@ -449,4 +408,4 @@ def recolectar_firmas(plataforma):
     plataforma.collect_signatures_interactive()
 
 if __name__ == "__main__":
-    ejemplo_interactivo()
+    pass

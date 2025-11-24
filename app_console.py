@@ -13,13 +13,11 @@ class ConsoleInterface:
         self.load_current_user_private_key()
         
     def load_configuration(self):
-        """Cargar configuración automáticamente al iniciar"""
         if os.path.exists("team_public_keys.json"):
             if self.system.load_public_keys_from_file("team_public_keys.json"):
                 print("✓ Configuración de equipo cargada automáticamente")
     
     def load_current_user_private_key(self):
-        """Intentar cargar la llave privada del usuario actual automáticamente"""
         if self.current_user:
             if self.system.load_privk(self.current_user):
                 print(f"✓ Llave privada de {self.current_user} cargada automáticamente")
@@ -107,6 +105,125 @@ class ConsoleInterface:
             self.system.save_public_keys_to_file("team_public_keys.json")
         
         input("\nPresione Enter para continuar...")
+
+    def register_team_keys(self):
+        self.clear_screen()
+        self.print_header()
+        print("REGISTRAR LLAVES PÚBLICAS DEL EQUIPO")
+        print("\nNota: Los archivos de llave pública deben estar en formato .pem")
+        print("Ejemplo: public_key_Director.pem, public_key_leah.pem, etc.")
+        print()
+        
+        try:
+            num_members = int(input("¿Cuántos miembros del equipo deseas registrar? "))
+        except ValueError:
+            print("Número inválido")
+            input("\nPresione Enter para continuar...")
+            return
+        
+        registered_count = 0
+        
+        for i in range(num_members):
+            print(f"\n--- Miembro #{i+1} ---")
+            member_id = input("ID del miembro (ej: Director, leah, mar): ").strip()
+            
+            if not member_id:
+                print("ID no especificado, saltando...")
+                continue
+            
+            # Sugerir automáticamente el nombre del archivo
+            suggested_file = f"public_key_{member_id}.pem"
+            key_file = input(f"Archivo de llave pública [Enter para {suggested_file}]: ").strip()
+            
+            if not key_file:
+                key_file = suggested_file
+            elif not key_file.endswith('.pem'):
+                key_file += '.pem'
+            
+            try:
+                with open(key_file, 'r') as f:
+                    public_key_pem = f.read()
+                
+                if self.system.add_team_member_public_key(member_id, public_key_pem):
+                    print(f"✅ Llave pública de '{member_id}' registrada exitosamente")
+                    registered_count += 1
+                else:
+                    print(f"❌ Error registrando llave de '{member_id}'")
+                    
+            except FileNotFoundError:
+                print(f"❌ Archivo no encontrado: {key_file}")
+                print(f"   Asegúrate de que el archivo '{key_file}' existe")
+            except Exception as e:
+                print(f"❌ Error: {e}")
+        
+        # Guardar configuración
+        if registered_count > 0:
+            self.system.save_public_keys_to_file("team_public_keys.json")
+            print(f"\n✅ {registered_count} llaves registradas y guardadas en team_public_keys.json")
+        else:
+            print(f"\n⚠️  No se registraron llaves nuevas")
+        
+        input("\nPresione Enter para continuar...")
+    
+    def view_my_keys(self):
+        self.clear_screen()
+        self.print_header()
+        print("🗝️ MIS LLAVES Y CONFIGURACIÓN DE EQUIPO 🗝️")
+        
+        # Información del usuario actual
+        print(f"\n👤 USUARIO ACTUAL: {self.current_user}")
+        print("-" * 40)
+        
+        # Estado de las llaves en memoria
+        if self.system.private_key:
+            print("✅ Llave privada CARGADA en memoria - LISTO PARA FIRMAR")
+        else:
+            print("❌ Llave privada NO CARGADA en memoria - NO PUEDE FIRMAR")
+        
+        if self.system.public_key:
+            print("✅ Llave pública CARGADA en memoria")
+        else:
+            print("❌ Llave pública NO CARGADA en memoria")
+        
+        # Verificar archivos locales
+        if self.system.user_id:
+            print(f"\n📁 ARCHIVOS LOCALES:")
+            private_key_file = f"private_key_{self.system.user_id}.pem"
+            public_key_file = f"public_key_{self.system.user_id}.pem"
+            
+            if os.path.exists(private_key_file):
+                print(f"   ✅ {private_key_file}")
+                if not self.system.private_key:
+                    print("   💡 Archivo existe pero NO CARGADO. Use 'Cargar mi llave privada'")
+            else:
+                print(f"   ❌ {private_key_file} (no existe)")
+            
+            if os.path.exists(public_key_file):
+                print(f"   ✅ {public_key_file}")
+            else:
+                print(f"   ❌ {public_key_file} (no existe)")
+        
+        # Mostrar miembros del equipo registrados
+        print(f"\n👥 EQUIPO REGISTRADO ({len(self.system.team_public_keys)} miembros):")
+        if self.system.team_public_keys:
+            for member_id in sorted(self.system.team_public_keys.keys()):
+                status = "✅" 
+                print(f"   {status} {member_id}")
+        else:
+            print("   ❌ No hay miembros del equipo registrados")
+            print("   💡 Use la Opción 2 para registrar llaves públicas")
+        
+        # Acciones recomendadas
+        print(f"\n🚀 ACCIONES RECOMENDADAS:")
+        if not self.system.private_key:
+            if os.path.exists(f"private_key_{self.current_user}.pem"):
+                print("   1. Use 'Configuración → Cargar mi llave privada'")
+            else:
+                print("   1. Use 'Generar mis llaves'")
+        else:
+            print("   1. ✅ Listo para firmar documentos")
+        
+        input("\nPresione Enter para continuar...")
     
     def sign_document(self):
         self.clear_screen()
@@ -170,63 +287,98 @@ class ConsoleInterface:
         
         input("\nPresione Enter para continuar...")
 
-    def view_my_keys(self):
+    def verify_individual_signature(self):
         self.clear_screen()
         self.print_header()
-        print("🗝️ MIS LLAVES Y CONFIGURACIÓN DE EQUIPO 🗝️")
+        print("VERIFICAR FIRMA INDIVIDUAL")
         
-        # Información del usuario actual
-        print(f"\n👤 USUARIO ACTUAL: {self.current_user}")
-        print("-" * 40)
+        file_path = input("Ruta del documento: ").strip()
+        if not file_path or not os.path.exists(file_path):
+            print(f"❌ El documento no existe: {file_path}")
+            input("\nPresione Enter para continuar...")
+            return
         
-        # Estado de las llaves en memoria
-        if self.system.private_key:
-            print("✅ Llave privada CARGADA en memoria - LISTO PARA FIRMAR")
-        else:
-            print("❌ Llave privada NO CARGADA en memoria - NO PUEDE FIRMAR")
+        sig_file = input("Archivo de firma (.json): ").strip()
+        if not sig_file.endswith('.json'):
+            sig_file += '.json'
         
-        if self.system.public_key:
-            print("✅ Llave pública CARGADA en memoria")
-        else:
-            print("❌ Llave pública NO CARGADA en memoria")
+        try:
+            with open(sig_file, 'r') as f:
+                signature_package = json.load(f)
+            print("✅ Firma cargada desde archivo")
+        except Exception as e:
+            print(f"❌ Error cargando firma: {e}")
+            input("\nPresione Enter para continuar...")
+            return
         
-        # Verificar archivos locales
-        if self.system.user_id:
-            print(f"\n📁 ARCHIVOS LOCALES:")
-            private_key_file = f"private_key_{self.system.user_id}.pem"
-            public_key_file = f"public_key_{self.system.user_id}.pem"
-            
-            if os.path.exists(private_key_file):
-                print(f"   ✅ {private_key_file}")
-                if not self.system.private_key:
-                    print("   💡 Archivo existe pero NO CARGADO. Use 'Cargar mi llave privada'")
+        try:
+            valid = self.system.verify_signature(signature_package, file_path)
+            if valid:
+                user_id = signature_package.get('user_id', 'desconocido')
+                print(f"\n✅ FIRMA VÁLIDA")
+                print(f"Firmante: {user_id}")
+                print(f"Documento: {os.path.basename(file_path)}")
+                print("El documento no ha sido modificado y la firma es auténtica.")
             else:
-                print(f"   ❌ {private_key_file} (no existe)")
-            
-            if os.path.exists(public_key_file):
-                print(f"   ✅ {public_key_file}")
-            else:
-                print(f"   ❌ {public_key_file} (no existe)")
+                print(f"\n❌ FIRMA INVÁLIDA")
+                print("El documento ha sido modificado o la firma es incorrecta.")
+        except Exception as e:
+            print(f"❌ Error verificando firma: {e}")
         
-        # Mostrar miembros del equipo registrados
-        print(f"\n👥 EQUIPO REGISTRADO ({len(self.system.team_public_keys)} miembros):")
-        if self.system.team_public_keys:
-            for member_id in sorted(self.system.team_public_keys.keys()):
-                status = "✅" 
-                print(f"   {status} {member_id}")
-        else:
-            print("   ❌ No hay miembros del equipo registrados")
-            print("   💡 Use la Opción 2 para registrar llaves públicas")
+        input("\nPresione Enter para continuar...")
+    
+    def verify_multiple_signatures(self):
+        self.clear_screen()
+        self.print_header()
+        print("VERIFICAR MÚLTIPLES FIRMAS")
         
-        # Acciones recomendadas
-        print(f"\n🚀 ACCIONES RECOMENDADAS:")
-        if not self.system.private_key:
-            if os.path.exists(f"private_key_{self.current_user}.pem"):
-                print("   1. Use 'Configuración → Cargar mi llave privada'")
+        # Verificar que hay llaves de equipo registradas
+        if not self.system.team_public_keys:
+            print("❌ ERROR: No hay llaves públicas de equipo registradas")
+            print("   Use la Opción 2 para registrar las llaves públicas")
+            print("   o la Opción 3 para verificar la configuración")
+            input("\nPresione Enter para continuar...")
+            return
+        
+        file_path = input("Ruta del documento: ").strip()
+        if not file_path or not os.path.exists(file_path):
+            print(f"❌ El documento no existe: {file_path}")
+            input("\nPresione Enter para continuar...")
+            return
+        
+        # Mostrar miembros registrados para referencia
+        print(f"\n👥 Miembros registrados: {', '.join(sorted(self.system.team_public_keys.keys()))}")
+        
+        # Usar la verificación interactiva del sistema
+        try:
+            result = self.system.verify_signatures_interactive(file_path)
+            if result:
+                print("\n🎉 VERIFICACIÓN EXITOSA - Todas las firmas son válidas")
             else:
-                print("   1. Use 'Generar mis llaves'")
-        else:
-            print("   1. ✅ Listo para firmar documentos")
+                print("\n⚠️  VERIFICACIÓN PARCIAL - Algunas firmas son inválidas")
+        except Exception as e:
+            print(f"❌ Error durante la verificación: {e}")
+        
+        input("\nPresione Enter para continuar...")
+    
+    def collect_signatures(self):
+        self.clear_screen()
+        self.print_header()
+        print("RECOLECTAR FIRMAS EN ARCHIVO")
+        
+        output_file = input("Nombre del archivo de salida (default: todas_firmas.json): ").strip()
+        if not output_file:
+            output_file = "todas_firmas.json"
+        
+        if not output_file.endswith('.json'):
+            output_file += '.json'
+        
+        # Usar la colección interactiva del sistema
+        try:
+            result_file = self.system.collect_signatures_interactive()
+            print(f"\n✅ Firmas recolectadas en: {result_file}")
+        except Exception as e:
+            print(f"❌ Error recolectando firmas: {e}")
         
         input("\nPresione Enter para continuar...")
 
@@ -246,15 +398,15 @@ class ConsoleInterface:
             if choice == "1":
                 filename = input("Nombre del archivo (team_public_keys.json): ").strip() or "team_public_keys.json"
                 self.system.save_public_keys_to_file(filename)
-                print("✓ Configuración guardada")
+                print("✅ Configuración guardada")
                 input("Presione Enter para continuar...")
             elif choice == "2":
                 filename = input("Nombre del archivo (team_public_keys.json): ").strip() or "team_public_keys.json"
                 if self.system.load_public_keys_from_file(filename):
-                    print("✓ Configuración cargada")
+                    print("✅ Configuración cargada")
                     print(f"Miembros del equipo: {len(self.system.team_public_keys)}")
                 else:
-                    print("✗ Archivo no encontrado")
+                    print("❌ Archivo no encontrado")
                 input("Presione Enter para continuar...")
             elif choice == "3":
                 user_id = input(f"ID de usuario [Enter para {self.current_user}]: ").strip()
