@@ -1,7 +1,7 @@
 import os
 import base64
 import json
-from mainhearth import signverify
+from sign.mainhearth import signverify
 
 class ConsoleInterface:
     def __init__(self):
