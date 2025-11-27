@@ -18,7 +18,7 @@ class signverify:
         self.symmetric_keys = {}
         self.document_hash = None
         
-    def gen_kpair(self):
+    def gen_kpair(self): 
         self.private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
@@ -96,6 +96,8 @@ class signverify:
             print(f"Error cargando llave pública: {e}")
             return False
     
+
+    # HASH DEL DOCUMENTO ----------------------------------------------------
     def calculate_document_hash(self, file_path):
         sha256_hash = hashlib.sha256()
         try:
@@ -106,6 +108,8 @@ class signverify:
             return self.document_hash
         except FileNotFoundError:
             raise ValueError(f"Archivo no encontrado: {file_path}")
+        
+    # firma ________________________________________________________________
     
     def sign_document(self, file_path):
         if not self.private_key:
