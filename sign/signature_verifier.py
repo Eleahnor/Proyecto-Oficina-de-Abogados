@@ -6,14 +6,9 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.exceptions import InvalidSignature
 from sign.key_generator import KeyGenerator
-from sign.signature_verifier import Signverify
 
-class Signverify:
+class SignatureVerifier:
     def __init__(self, key_generator=None):
-        self.key_gen = key_generator
-    
-    def set_key_generator(self, key_generator):
-        """Establece el generador de llaves a usar"""
         self.key_gen = key_generator
     
     def calculate_document_hash(self, file_path):
@@ -233,7 +228,7 @@ def verificar_firmas_interactive():
         print("❌ No se pudieron cargar las llaves públicas. Regístralas primero.")
         return
     
-    verifier = Signverify(key_gen)
+    verifier = SignatureVerifier(key_gen)
     
     documento = input("Ruta del documento a verificar: ").strip()
     
