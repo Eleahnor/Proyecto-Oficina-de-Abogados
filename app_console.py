@@ -8,6 +8,7 @@ from cipher.Cifrado_doc import DocumentEncryptor
 from cipher.Descifrado_doc import DocumentDecryptor
 from cipher.cifradollave import KeyEncryptor
 from cipher.decifradollave import KeyDecryptor
+from cryptography.hazmat.primitives import serialization
 
 class ConsoleInterface:
     def __init__(self):
