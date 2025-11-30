@@ -14,7 +14,6 @@ class KeyGenerator:
         self.team_public_keys = {}
     
     def generate_key_pair(self): 
-        """Genera un par de llaves RSA"""
         self.private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
@@ -57,7 +56,6 @@ class KeyGenerator:
         return False
     
     def load_private_key(self, user_id=None):
-        """Carga una llave privada desde archivo"""
         user_id = user_id or self.user_id
         if not user_id:
             return False
@@ -81,7 +79,6 @@ class KeyGenerator:
             return False
     
     def get_public_key_pem(self):
-        """Obtiene la llave pública en formato PEM"""
         if self.public_key:
             return self.public_key.public_bytes(
                 encoding=serialization.Encoding.PEM,
@@ -90,7 +87,6 @@ class KeyGenerator:
         return None
     
     def add_team_member_public_key(self, member_id, public_key_pem):
-        """Agrega una llave pública de miembro del equipo"""
         try:
             public_key = serialization.load_pem_public_key(
                 public_key_pem.encode('utf-8'),

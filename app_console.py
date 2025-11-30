@@ -96,7 +96,7 @@ class ConsoleInterface:
             print("3. Ver mis llaves y equipo")
             print("4. Cifrar llave privada")
             print("5. Descifrar llave privada")
-            print("6. Volver al menú principal")
+            print("0. Volver al menú principal")
             print()
             
             choice = input("Seleccione una opción: ").strip()
@@ -111,7 +111,7 @@ class ConsoleInterface:
                 self.encrypt_private_key()
             elif choice == "5":
                 self.decrypt_private_key()
-            elif choice == "6":
+            elif choice == "0":
                 break
             else:
                 input("Opción inválida. Presione Enter para continuar...")
@@ -125,7 +125,7 @@ class ConsoleInterface:
             print("2. Verificar firma individual")
             print("3. Verificar múltiples firmas")
             print("4. Recolectar firmas en archivo")
-            print("5. Volver al menú principal")
+            print("0. Volver al menú principal")
             print()
             
             choice = input("Seleccione una opción: ").strip()
@@ -138,7 +138,7 @@ class ConsoleInterface:
                 self.verify_multiple_signatures()
             elif choice == "4":
                 self.collect_signatures()
-            elif choice == "5":
+            elif choice == "0":
                 break
             else:
                 input("Opción inválida. Presione Enter para continuar...")
@@ -152,7 +152,7 @@ class ConsoleInterface:
             print("2. Descifrar documento")
             print("3. Cifrar documento con llave de equipo")
             print("4. Descifrar documento con llave de equipo")
-            print("5. Volver al menú principal")
+            print("0. Volver al menú principal")
             print()
             
             choice = input("Seleccione una opción: ").strip()
@@ -165,7 +165,7 @@ class ConsoleInterface:
                 self.encrypt_document_team()
             elif choice == "4":
                 self.decrypt_document_team()
-            elif choice == "5":
+            elif choice == "0":
                 break
             else:
                 input("Opción inválida. Presione Enter para continuar...")
@@ -179,7 +179,7 @@ class ConsoleInterface:
             print("2. Cargar configuración de equipo")
             print("3. Cargar mi llave privada")
             print("4. Cambiar usuario")
-            print("5. Volver al menú principal")
+            print("0. Volver al menú principal")
             print()
             
             choice = input("Seleccione una opción: ").strip()
@@ -213,7 +213,7 @@ class ConsoleInterface:
                 input("Presione Enter para continuar...")
             elif choice == "4":
                 self.change_user()
-            elif choice == "5":
+            elif choice == "0":
                 break
             else:
                 input("Opción inválida. Presione Enter para continuar...")
