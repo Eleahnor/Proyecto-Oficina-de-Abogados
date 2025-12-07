@@ -1,0 +1,8 @@
+{
+  "user_id": "mar",
+  "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqx1zo0cUngNsoMGk9YGt\nhq8m8PVtVsMkcrVsBhhOMq/W6QhGunebUxEIYf8Gcm0JWHV6YJ7ZH8eS/A4IwKif\nu1iNf7xEbSHEAw2JlXCdtlZoi+MtO06NxSi6KC5Y65ZtY6XK+kkqhhLfFhMoZW8v\nzvf4bEZju1WSoo5LAwridukM2cJVXBoGBQP92OSgDCbVs1/dtNnHInY/ufoK7yWx\nUHvEOP1LPhsHKxAIQHXFX5wW9kOc/Lubnu7opsrejBdM6+7aB5VIfaN+grNJseI3\njv0Aydm28J5cKoJgV0f8vFii9sXH9m2od7fStk3Zi7KwNwQzUWEdXHAa7oo9dbav\n7QIDAQAB\n-----END PUBLIC KEY-----\n",
+  "team_public_keys": {
+    "mar": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqx1zo0cUngNsoMGk9YGt\nhq8m8PVtVsMkcrVsBhhOMq/W6QhGunebUxEIYf8Gcm0JWHV6YJ7ZH8eS/A4IwKif\nu1iNf7xEbSHEAw2JlXCdtlZoi+MtO06NxSi6KC5Y65ZtY6XK+kkqhhLfFhMoZW8v\nzvf4bEZju1WSoo5LAwridukM2cJVXBoGBQP92OSgDCbVs1/dtNnHInY/ufoK7yWx\nUHvEOP1LPhsHKxAIQHXFX5wW9kOc/Lubnu7opsrejBdM6+7aB5VIfaN+grNJseI3\njv0Aydm28J5cKoJgV0f8vFii9sXH9m2od7fStk3Zi7KwNwQzUWEdXHAa7oo9dbav\n7QIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "timestamp": 1764899919.9360523
+}

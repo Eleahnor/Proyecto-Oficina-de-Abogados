@@ -27,7 +27,6 @@ class KeyGenerator:
         return self.get_public_key_pem()
     
     def save_keys_local(self):
-        """Guarda las llaves en archivos locales"""
         if self.private_key and self.user_id:
             # Guardar llave privada
             private_pem = self.private_key.private_bytes(
@@ -121,7 +120,6 @@ class KeyGenerator:
         return True
     
     def load_public_keys_from_file(self, filename="public_keys.json"):
-        """Carga llaves públicas desde archivo"""
         try:
             with open(filename, 'r') as f:
                 data = json.load(f)
@@ -150,13 +148,11 @@ class KeyGenerator:
             return False
     
     def get_timestamp(self):
-        """Obtiene timestamp actual"""
         import time
         return time.time()
 
 # Funciones de utilidad para gestión de llaves
 def registrar_llaves_publicas_interactive():
-    """Función interactiva para registrar llaves públicas"""
     print("\n--- REGISTRO DE LLAVES PÚBLICAS ---")
     
     user_id = input("Tu ID de usuario: ").strip()

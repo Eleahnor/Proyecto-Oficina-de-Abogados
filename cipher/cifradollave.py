@@ -8,7 +8,6 @@ class KeyEncryptor:
         self.ruta_base = os.path.dirname(os.path.abspath(__file__))
 
     def cargar_clave_rsa(self, archivo_publico_completo):
-        """Carga una clave pública RSA desde archivo PEM"""
         try:
             with open(archivo_publico_completo, "rb") as f:
                 clave_publica = serialization.load_pem_public_key(f.read())

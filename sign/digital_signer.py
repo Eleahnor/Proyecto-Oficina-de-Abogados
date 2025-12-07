@@ -6,6 +6,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.exceptions import InvalidSignature
 
+from sign.key_generator import KeyGenerator
+
 class DigitalSigner:
     def __init__(self, key_generator=None):
         self.key_gen = key_generator
@@ -20,11 +22,9 @@ class DigitalSigner:
         }
     
     def set_key_generator(self, key_generator):
-        """Establece el generador de llaves a usar"""
         self.key_gen = key_generator
     
     def calculate_document_hash(self, file_path):
-        """Calcula hash SHA-256 del documento"""
         sha256_hash = hashlib.sha256()
         try:
             with open(file_path, "rb") as f:
@@ -36,7 +36,6 @@ class DigitalSigner:
             raise ValueError(f"❌ Archivo no encontrado: {file_path}")
     
     def sign_document(self, file_path):
-        """Firma un documento digitalmente"""
         if not self.key_gen or not self.key_gen.private_key:
             raise ValueError("❌ No hay llave privada disponible")
         
@@ -49,7 +48,7 @@ class DigitalSigner:
         # Calcular hash del documento
         document_hash = self.calculate_document_hash(file_path)
         
-        # Crear firma digital
+        # crear firma digital
         signature = self.key_gen.private_key.sign(
             file_data,
             padding.PSS(
@@ -59,7 +58,6 @@ class DigitalSigner:
             hashes.SHA256()
         )
         
-        # Crear paquete de firma
         signature_package = {
             'user_id': self.key_gen.user_id,
             'signature': base64.b64encode(signature).decode('utf-8'),
@@ -71,7 +69,7 @@ class DigitalSigner:
         return signature_package
     
     def sign_document_hash_only(self, document_hash):
-        """Firma solo el hash del documento (más eficiente)"""
+        """Firma el hash del documento"""
         if not self.key_gen or not self.key_gen.private_key:
             raise ValueError("❌ No hay llave privada disponible")
         
@@ -178,7 +176,6 @@ class DigitalSigner:
 
 # Función interactiva para firmar documentos
 def firmar_documento_interactive():
-    """Función interactiva para firmar documentos"""
     print("\n--- FIRMA DIGITAL DE DOCUMENTO ---")
     
     user_id = input("Tu ID de usuario: ").strip()
@@ -205,7 +202,7 @@ def firmar_documento_interactive():
         
         print(f"\n🎉 Documento firmado exitosamente!")
         print(f"📄 Documento: {document_path}")
-        print(f"🔐 Hash: {signature_package['document_hash']}")
+        #print(f"🔐 Hash: {signature_package['document_hash']}")
         print(f"👤 Firmado por: {user_id}")
         print(f"📝 Firma guardada en: {output_file}")
         
