@@ -29,13 +29,11 @@ class ConsoleInterface:
         self.load_current_user_private_key()
     
     def load_configuration(self):
-        """Carga la configuración de llaves públicas del equipo"""
         if os.path.exists("team_public_keys.json"):
             if self.key_gen.load_public_keys_from_file("team_public_keys.json"):
                 print("✓ Configuración de equipo cargada automáticamente")
     
     def load_current_user_private_key(self):
-        """Intenta cargar la llave privada del usuario actual"""
         if self.current_user:
             if self.key_gen.load_private_key(self.current_user):
                 print(f"✓ Llave privada de {self.current_user} cargada automáticamente")
@@ -94,8 +92,8 @@ class ConsoleInterface:
             print("1. Generar mis llaves")
             print("2. Registrar llaves públicas de equipo")
             print("3. Ver mis llaves y equipo")
-            print("4. Cifrar llave privada")
-            print("5. Descifrar llave privada")
+            print("4. Cifrar llave AES")
+            print("5. Descifrar llave AES")
             print("0. Volver al menú principal")
             print()
             
@@ -177,8 +175,7 @@ class ConsoleInterface:
             print("⚙️  CONFIGURACIÓN DEL SISTEMA")
             print("1. Guardar configuración de equipo")
             print("2. Cargar configuración de equipo")
-            print("3. Cargar mi llave privada")
-            print("4. Cambiar usuario")
+            print("3. Cambiar usuario")
             print("0. Volver al menú principal")
             print()
             
@@ -198,20 +195,6 @@ class ConsoleInterface:
                     print("❌ Archivo no encontrado")
                 input("Presione Enter para continuar...")
             elif choice == "3":
-                user_id = input(f"ID de usuario [Enter para {self.current_user}]: ").strip()
-                if not user_id:
-                    user_id = self.current_user
-                
-                if self.key_gen.load_private_key(user_id):
-                    self.current_user = user_id
-                    self.key_gen.user_id = user_id
-                    print(f"✅ Llave privada de {user_id} cargada exitosamente")
-                    print("✅ Ahora puede realizar operaciones")
-                else:
-                    print(f"❌ No se encontró llave privada para {user_id}")
-                    print(f"   Verifique que el archivo private_key_{user_id}.pem existe")
-                input("Presione Enter para continuar...")
-            elif choice == "4":
                 self.change_user()
             elif choice == "0":
                 break
@@ -355,82 +338,69 @@ class ConsoleInterface:
         
         input("\nPresione Enter para continuar...")
     
-    def encrypt_private_key(self):
+    def encrypt_private_key(self): # (Nota: Puedes cambiarle el nombre a encrypt_aes_key_menu si quieres)
         self.clear_screen()
         self.print_header()
-        print("🔐 CIFRADO DE LLAVE PRIVADA")
+        print("📤 CIFRAR LLAVE AES PARA COMPAÑERO")
+        print("Usa esto para compartir una llave AES de forma segura.\n")
         
-        if not self.key_gen.private_key:
-            print("❌ No hay llave privada cargada para cifrar")
-            input("\nPresione Enter para continuar...")
+        aes_file = input("Archivo de llave AES a enviar (.key): ").strip()
+        
+        print("\n¿Para quién es esta llave?")
+        # Listar equipo para facilitar
+        if self.key_gen.team_public_keys:
+            print("Equipo registrado:")
+            for member in self.key_gen.team_public_keys:
+                print(f" - {member}")
+        
+        recipient_pub_file = input("\nArchivo de llave PÚBLICA del destinatario (.pem): ").strip()
+        
+        # Atajo: si escriben el nombre de un usuario registrado, buscar su archivo
+        if not recipient_pub_file.endswith('.pem') and recipient_pub_file in self.key_gen.team_public_keys:
+             recipient_pub_file = f"public_key_{recipient_pub_file}.pem"
+
+        if not aes_file or not recipient_pub_file:
+            print("❌ Faltan archivos.")
+            input("Enter para continuar...")
             return
+
+        result = self.key_encryptor.encrypt_aes_key_for_recipient(aes_file, recipient_pub_file)
         
-        password = input("Contraseña para cifrar la llave privada: ").strip()
-        if not password:
-            print("❌ La contraseña no puede estar vacía")
-            input("\nPresione Enter para continuar...")
-            return
-        
-        try:
-            # Serializar llave privada
-            private_pem = self.key_gen.private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
-            )
-            
-            # Guardar temporalmente
-            temp_file = f"temp_private_{self.current_user}.pem"
-            with open(temp_file, 'wb') as f:
-                f.write(private_pem)
-            
-            # Cifrar llave
-            result = self.key_encryptor.encrypt_key(temp_file, password)
-            
-            if result['success']:
-                print(f"\n✅ Llave privada cifrada exitosamente:")
-                print(f"   📄 Archivo cifrado: {result['encrypted_file']}")
-                print(f"   🔑 Archivo de metadatos: {result['metadata_file']}")
-                
-                # Eliminar archivo temporal
-                os.remove(temp_file)
-            else:
-                print(f"❌ Error cifrando llave: {result.get('error', 'Error desconocido')}")
-                
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        if result['success']:
+            print(f"\n✅ Llave cifrada lista para enviar:")
+            print(f"   📦 Archivo: {result['encrypted_file']}")
+            print("   Envía este archivo a tu compañero.")
+        else:
+            print(f"❌ Error: {result['error']}")
         
         input("\nPresione Enter para continuar...")
-    
-    def decrypt_private_key(self):
+
+    def decrypt_private_key(self): # (Puedes renombrar a decrypt_aes_key_menu)
         self.clear_screen()
         self.print_header()
-        print("🔓 DESCIFRADO DE LLAVE PRIVADA")
+        print("📥 DESCIFRAR LLAVE AES RECIBIDA")
+        print("Recupera una llave AES que te enviaron cifrada.\n")
         
-        encrypted_file = input("Archivo cifrado (.enc): ").strip()
-        metadata_file = input("Archivo de metadatos (.meta): ").strip()
-        password = input("Contraseña: ").strip()
+        encrypted_file = input("Archivo de llave cifrada recibido (.enc): ").strip()
         
-        if not all([encrypted_file, metadata_file, password]):
-            print("❌ Todos los campos son obligatorios")
-            input("\nPresione Enter para continuar...")
+        # Asumimos que usa la llave privada del usuario logueado
+        my_private_file = f"private_key_{self.current_user}.pem"
+        
+        print(f"Usando tu llave privada: {my_private_file}")
+        
+        if not os.path.exists(my_private_file):
+            print(f"❌ Error: No encuentro tu llave privada ({my_private_file})")
+            input("Enter para continuar...")
             return
+
+        result = self.key_decryptor.decrypt_aes_key_with_private(encrypted_file, my_private_file)
         
-        try:
-            result = self.key_decryptor.decrypt_key(encrypted_file, metadata_file, password)
-            
-            if result['success']:
-                print(f"\n✅ Llave privada descifrada exitosamente:")
-                print(f"   📄 Archivo descifrado: {result['decrypted_file']}")
-                
-                # Cargar la llave descifrada
-                if self.key_gen.load_private_key(self.current_user):
-                    print("✅ Llave privada cargada automáticamente")
-            else:
-                print(f"❌ Error descifrando llave: {result.get('error', 'Error desconocido')}")
-                
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        if result['success']:
+            print(f"\n✅ Llave AES recuperada exitosamente:")
+            print(f"   🔑 Archivo: {result['decrypted_file']}")
+            print("   Ahora puedes usar esta llave en la opción 'Descifrar Documento'.")
+        else:
+            print(f"❌ Error: {result['error']}")
         
         input("\nPresione Enter para continuar...")
     
@@ -584,62 +554,32 @@ class ConsoleInterface:
             input("\nPresione Enter para continuar...")
             return
         
-        password = input("Contraseña para cifrado: ").strip()
-        if not password:
-            print("❌ La contraseña no puede estar vacía")
-            input("\nPresione Enter para continuar...")
-            return
+        result = self.encryptor.encrypt_with_generated_key(file_path)
         
-        try:
-            result = self.encryptor.encrypt_document(file_path, password)
-            
-            if result['success']:
-                print(f"\n✅ Documento cifrado exitosamente:")
-                print(f"   📄 Archivo cifrado: {result['encrypted_path']}")
-                print(f"   📋 Metadatos: {result['metadata_path']}")
-                print(f"   📊 Tamaño original: {os.path.getsize(file_path)} bytes")
-                print(f"   📊 Tamaño cifrado: {os.path.getsize(result['encrypted_path'])} bytes")
-            else:
-                print(f"❌ Error cifrando documento: {result.get('error', 'Error desconocido')}")
-                
-        except Exception as e:
-            print(f"❌ Error: {e}")
-        
-        input("\nPresione Enter para continuar...")
+        if result['success']:
+            print(f"\n✅ Cifrado Exitoso")
+            print(f"   📄 Archivo: {result['encrypted_path']}")
+            print(f"   🔑 LLAVE:   {result['key_path']}")
+            print("   ⚠️ GUARDA LA LLAVE. Sin ella no podrás abrir el archivo.")
+        else:
+            print(f"❌ Error: {result['error']}")
+        input("Enter para continuar...")
     
     def decrypt_document(self):
         self.clear_screen()
         self.print_header()
-        print("🔓 DESCIFRADO DE DOCUMENTO")
+        print("🔓 DESCIFRADO PERSONAL (Con Llave)")
+        enc_file = input("Archivo cifrado: ").strip()
+        key_file = input("Archivo de llave (.key): ").strip()
         
-        encrypted_file = input("Archivo cifrado: ").strip()
-        metadata_file = input("Archivo de metadatos: ").strip()
-        password = input("Contraseña: ").strip()
+        # CAMBIO AQUÍ: Llamamos a la nueva función de llave
+        result = self.decryptor.decrypt_with_keyfile(enc_file, key_file)
         
-        if not all([encrypted_file, metadata_file, password]):
-            print("❌ Todos los campos son obligatorios")
-            input("\nPresione Enter para continuar...")
-            return
-        
-        if not os.path.exists(encrypted_file) or not os.path.exists(metadata_file):
-            print("❌ Uno o más archivos no existen")
-            input("\nPresione Enter para continuar...")
-            return
-        
-        try:
-            result = self.decryptor.decrypt_document(encrypted_file, metadata_file, password)
-            
-            if result['success']:
-                print(f"\n✅ Documento descifrado exitosamente:")
-                print(f"   📄 Archivo descifrado: {result['decrypted_path']}")
-                print(f"   📄 Nombre original: {result['original_filename']}")
-            else:
-                print(f"❌ Error descifrando documento: {result.get('error', 'Error desconocido')}")
-                
-        except Exception as e:
-            print(f"❌ Error: {e}")
-        
-        input("\nPresione Enter para continuar...")
+        if result['success']:
+            print(f"\n✅ Descifrado Exitoso: {result['decrypted_path']}")
+        else:
+            print(f"❌ Error: {result['error']}")
+        input("Enter para continuar...")
     
     def encrypt_document_team(self):
         self.clear_screen()
@@ -725,5 +665,11 @@ class ConsoleInterface:
         input("Presione Enter para continuar...")
 
 if __name__ == "__main__":
+    # --- AGREGA ESTAS LÍNEAS ---
+    # Obtener la ruta donde vive este archivo script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Cambiar el directorio de trabajo a esa ruta
+    os.chdir(script_dir)
+    # ---------------------------
     app = ConsoleInterface()
     app.main_menu()

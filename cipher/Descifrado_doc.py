@@ -1,92 +1,117 @@
 import os
 from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import base64
 
 class DocumentDecryptor:
     def __init__(self):
-        self.ruta_base = os.path.dirname(os.path.abspath(__file__))
+        pass
 
-    def cargar_clave_aes(self, archivo_clave_completo):
-        """Carga la clave AES desde un archivo"""
-        try:
-            with open(archivo_clave_completo, "rb") as f:
-                return f.read()
-        except IOError as e:
-            print(f"Error al cargar la clave desde {archivo_clave_completo}: {e}")
-            return None
+    # --- UTILIDAD PARA LIMPIAR NOMBRES ---
+    def _generar_nombre_salida(self, encrypted_path):
+        """
+        Toma una ruta como 'encrypted_doc1.pdf.enc'
+        y devuelve una ruta limpia como 'decrypted_doc1.pdf'
+        """
+        directory = os.path.dirname(encrypted_path)
+        filename = os.path.basename(encrypted_path)
+        
+        # 1. Quitar extensión .enc
+        if filename.endswith('.enc'):
+            filename = filename[:-4]
+            
+        # 2. Quitar prefijo encrypted_
+        if filename.startswith("encrypted_"):
+            filename = filename.replace("encrypted_", "", 1)
+            
+        # 3. Agregar prefijo decrypted_
+        new_filename = f"decrypted_{filename}"
+        
+        return os.path.join(directory, new_filename), filename
 
-    def descifrar_archivo(self, archivo_entrada_cifrado_completo, archivo_salida_descifrado_completo, clave):
-        """Descifra un archivo usando Fernet"""
-        f = Fernet(clave)
+    # --- OPCIÓN 2: Descifrar con archivo de llave (.key) ---
+    def decrypt_with_keyfile(self, encrypted_path, key_path):
         try:
-            with open(archivo_entrada_cifrado_completo, "rb") as file_in:
+            if not os.path.exists(encrypted_path) or not os.path.exists(key_path):
+                return {'success': False, 'error': 'Faltan archivos (cifrado o llave)'}
+
+            # Cargar la llave tal cual
+            with open(key_path, 'rb') as f:
+                clave = f.read()
+
+            f = Fernet(clave)
+            
+            with open(encrypted_path, 'rb') as file_in:
                 datos_cifrados = file_in.read()
-                
+
             datos_descifrados = f.decrypt(datos_cifrados)
             
-            with open(archivo_salida_descifrado_completo, "wb") as file_out:
+            # Generar nombre limpio
+            decrypted_path, original_name = self._generar_nombre_salida(encrypted_path)
+
+            with open(decrypted_path, 'wb') as file_out:
                 file_out.write(datos_descifrados)
-                
-            print(f"Archivo descifrado exitosamente en: {archivo_salida_descifrado_completo}")
-            return True
+
+            return {
+                'success': True, 
+                'decrypted_path': decrypted_path,
+                'original_filename': original_name
+            }
             
         except InvalidToken:
-            print("ERROR CRÍTICO: La clave es incorrecta o el archivo ha sido manipulado.")
-            return False
-        except Exception as e:
-            print(f"Error inesperado: {e}")
-            return False
-
-    def decrypt_document(self, encrypted_path, metadata_path, password):
-        """Método unificado para descifrar documentos - compatible con app_console"""
-        try:
-            # Para compatibilidad con el sistema principal
-            # En este caso simple, usamos la contraseña directamente
-            clave = Fernet.generate_key()  # Esto no es seguro, solo para demo
-            # En un sistema real, deberías derivar una clave de la contraseña
-            
-            if not os.path.exists(encrypted_path):
-                return {'success': False, 'error': 'Archivo cifrado no encontrado'}
-            
-            # Generar nombre de salida
-            output_path = f"decrypted_{os.path.basename(encrypted_path).replace('.enc', '')}"
-            
-            result = self.descifrar_archivo(encrypted_path, output_path, clave)
-            
-            if result:
-                return {
-                    'success': True,
-                    'decrypted_path': output_path,
-                    'original_filename': os.path.basename(encrypted_path).replace('.enc', '')
-                }
-            else:
-                return {'success': False, 'error': 'Error en el descifrado'}
-                
+            return {'success': False, 'error': 'La llave no es correcta para este archivo'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
-    def main(self):
-        """Función principal para uso independiente"""
-        print("\n" + "=" * 40)
-        print("   PANEL ABOGADO: Descifrar Documento")
-        print("=" * 40)
-        
-        archivo_in = input("Nombre del archivo cifrado (ej. reporte.pdf.enc): ")
-        archivo_out = input("Nombre para guardar descifrado (ej. reporte_final.pdf): ")
-        archivo_clave = input("Nombre de la clave AES recuperada (ej. clave_aes.key): ")
+    # --- OPCIÓN 4: Descifrar con Password de Equipo ---
+    def derivar_clave_desde_password(self, password, salt):
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
+        )
+        clave = kdf.derive(password.encode())
+        return base64.urlsafe_b64encode(clave)
 
-        ruta_in = os.path.join(self.ruta_base, archivo_in)
-        ruta_out = os.path.join(self.ruta_base, archivo_out)
-        ruta_clave = os.path.join(self.ruta_base, archivo_clave)
-        
-        if os.path.exists(ruta_in) and os.path.exists(ruta_clave):
-            clave = self.cargar_clave_aes(ruta_clave)
-            if clave:
-                self.descifrar_archivo(ruta_in, ruta_out, clave)
-        else:
-            print("Error: Falta el archivo cifrado o la clave.")
+    def decrypt_document(self, encrypted_path, metadata_path, password):
+        try:
+            # Validaciones
+            if not os.path.exists(encrypted_path):
+                return {'success': False, 'error': f'No existe archivo cifrado: {encrypted_path}'}
+            if not os.path.exists(metadata_path):
+                return {'success': False, 'error': f'No existe archivo metadata: {metadata_path}'}
 
-        input("\nPresiona Enter para salir...")
+            # Leer salt
+            with open(metadata_path, 'rb') as f:
+                salt = f.read()
 
-if __name__ == "__main__":
-    decryptor = DocumentDecryptor()
-    decryptor.main()
+            # Regenerar clave
+            clave = self.derivar_clave_desde_password(password, salt)
+            f = Fernet(clave)
+
+            # Leer datos
+            with open(encrypted_path, 'rb') as file_in:
+                datos_cifrados = file_in.read()
+
+            # Descifrar
+            datos_descifrados = f.decrypt(datos_cifrados)
+            
+            # --- CORRECCIÓN AQUÍ: Usar la misma lógica de nombres limpios ---
+            decrypted_path, original_name = self._generar_nombre_salida(encrypted_path)
+
+            # Guardar
+            with open(decrypted_path, 'wb') as out:
+                out.write(datos_descifrados)
+
+            return {
+                'success': True,
+                'decrypted_path': decrypted_path,
+                'original_filename': original_name
+            }
+
+        except InvalidToken:
+            return {'success': False, 'error': 'Contraseña incorrecta'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
