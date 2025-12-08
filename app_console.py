@@ -29,13 +29,11 @@ class ConsoleInterface:
         self.load_current_user_private_key()
     
     def load_configuration(self):
-        """Carga la configuración de llaves públicas del equipo"""
         if os.path.exists("team_public_keys.json"):
             if self.key_gen.load_public_keys_from_file("team_public_keys.json"):
                 print("✓ Configuración de equipo cargada automáticamente")
     
     def load_current_user_private_key(self):
-        """Intenta cargar la llave privada del usuario actual"""
         if self.current_user:
             if self.key_gen.load_private_key(self.current_user):
                 print(f"✓ Llave privada de {self.current_user} cargada automáticamente")
@@ -177,8 +175,7 @@ class ConsoleInterface:
             print("⚙️  CONFIGURACIÓN DEL SISTEMA")
             print("1. Guardar configuración de equipo")
             print("2. Cargar configuración de equipo")
-            print("3. Cargar mi llave privada")
-            print("4. Cambiar usuario")
+            print("3. Cambiar usuario")
             print("0. Volver al menú principal")
             print()
             
@@ -198,20 +195,6 @@ class ConsoleInterface:
                     print("❌ Archivo no encontrado")
                 input("Presione Enter para continuar...")
             elif choice == "3":
-                user_id = input(f"ID de usuario [Enter para {self.current_user}]: ").strip()
-                if not user_id:
-                    user_id = self.current_user
-                
-                if self.key_gen.load_private_key(user_id):
-                    self.current_user = user_id
-                    self.key_gen.user_id = user_id
-                    print(f"✅ Llave privada de {user_id} cargada exitosamente")
-                    print("✅ Ahora puede realizar operaciones")
-                else:
-                    print(f"❌ No se encontró llave privada para {user_id}")
-                    print(f"   Verifique que el archivo private_key_{user_id}.pem existe")
-                input("Presione Enter para continuar...")
-            elif choice == "4":
                 self.change_user()
             elif choice == "0":
                 break

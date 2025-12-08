@@ -41,7 +41,6 @@ class KeyDecryptor:
             print(f"Error al guardar la clave AES en {archivo_salida_completo}: {e}")
 
     def descifrar_clave(self, clave_cifrada_bytes, clave_privada_rsa):
-        """Descifra una clave AES usando RSA-OAEP"""
         print("Descifrando clave AES con RSA-OAEP...")
         try:
             # El padding DEBE ser idéntico al usado para cifrar

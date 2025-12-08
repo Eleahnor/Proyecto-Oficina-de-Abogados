@@ -68,32 +68,30 @@ class DigitalSigner:
         
         return signature_package
     
-    def sign_document_hash_only(self, document_hash):
-        """Firma el hash del documento"""
-        if not self.key_gen or not self.key_gen.private_key:
-            raise ValueError("❌ No hay llave privada disponible")
+    # def sign_document_hash_only(self, document_hash):
+    #     if not self.key_gen or not self.key_gen.private_key:
+    #         raise ValueError("❌ No hay llave privada disponible")
         
-        signature = self.key_gen.private_key.sign(
-            document_hash.encode('utf-8'),
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
-        )
+    #     signature = self.key_gen.private_key.sign(
+    #         document_hash.encode('utf-8'),
+    #         padding.PSS(
+    #             mgf=padding.MGF1(hashes.SHA256()),
+    #             salt_length=padding.PSS.MAX_LENGTH
+    #         ),
+    #         hashes.SHA256()
+    #     )
         
-        signature_package = {
-            'user_id': self.key_gen.user_id,
-            'signature': base64.b64encode(signature).decode('utf-8'),
-            'document_hash': document_hash,
-            'timestamp': self.get_timestamp(),
-            'hash_only': True
-        }
+    #     signature_package = {
+    #         'user_id': self.key_gen.user_id,
+    #         'signature': base64.b64encode(signature).decode('utf-8'),
+    #         'document_hash': document_hash,
+    #         'timestamp': self.get_timestamp(),
+    #         'hash_only': True
+    #     }
         
-        return signature_package
+    #     return signature_package
     
     def save_signature_package(self, signature_package, output_path=None):
-        """Guarda el paquete de firma en un archivo JSON"""
         if output_path is None:
             output_path = f"firma_{self.key_gen.user_id}_{self.get_timestamp()}.json"
         
@@ -104,7 +102,6 @@ class DigitalSigner:
         return output_path
     
     def collect_signatures_interactive(self):        
-        """Recolecta firmas de manera interactiva"""
         print("\n--- COLECCIÓN DE FIRMAS ---")
         
         while True:
@@ -131,8 +128,11 @@ class DigitalSigner:
         
         return self.collect_signatures(signature_files)
     
+
+
+
+    ####no
     def collect_signatures(self, signature_files, output_file="todas_las_firmas.json"):
-        """Recolecta múltiples firmas en un solo archivo"""
         all_signatures = {
             'document_hash': self.document_hash,
             'collected_at': self.get_timestamp(),

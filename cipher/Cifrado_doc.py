@@ -9,11 +9,9 @@ class DocumentEncryptor:
         self.ruta_base = os.path.dirname(os.path.abspath(__file__))
 
     def generar_clave_aes(self):
-        """Genera una nueva clave AES"""
         return Fernet.generate_key()
 
     def derivar_clave_desde_password(self, password, salt):
-        """Deriva una clave AES desde una contraseña usando PBKDF2"""
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,

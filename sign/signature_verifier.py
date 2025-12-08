@@ -22,7 +22,6 @@ class SignatureVerifier:
             raise ValueError(f"❌ Archivo no encontrado: {file_path}")
     
     def verify_signature(self, signature_package, file_path):
-        """Verifica una firma individual"""
         try:
             # Verificar integridad del documento
             current_hash = self.calculate_document_hash(file_path)
@@ -79,7 +78,6 @@ class SignatureVerifier:
             return False
     
     def verify_signatures_interactive(self, file_path):
-        """Verificación interactiva de múltiples firmas"""
         print("\n=== VERIFICACIÓN DE MÚLTIPLES FIRMAS ===")
         
         if not os.path.exists(file_path):
@@ -198,7 +196,6 @@ class SignatureVerifier:
             return False
     
     def verify_collected_signatures(self, collected_file, file_path):
-        """Verifica firmas desde un archivo recolectado"""
         try:
             with open(collected_file, 'r') as f:
                 collected_data = json.load(f)
@@ -219,7 +216,6 @@ class SignatureVerifier:
 
 # Función interactiva para verificación
 def verificar_firmas_interactive():
-    """Función interactiva para verificar firmas"""
     print("\n--- VERIFICACIÓN DE FIRMAS ---")
     
     # Cargar llaves públicas primero
