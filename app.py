@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 import os
 import json
 import hashlib
+import base64
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -405,6 +406,101 @@ def verify_multiple_signatures():
 # ============================================================================
 # CIFRADO Y DESCIFRADO
 # ============================================================================
+
+@app.route('/api/password/generate', methods=['POST'])
+@login_required
+def generate_aes_password():
+    """Generar contraseña AES aleatoria"""
+    try:
+        # Generar 32 bytes aleatorios para AES-256
+        import secrets
+        aes_key = secrets.token_bytes(32)
+        aes_key_b64 = base64.b64encode(aes_key).decode('utf-8')
+        
+        return jsonify({
+            'success': True,
+            'aes_key': aes_key_b64,
+            'message': 'Contraseña AES generada exitosamente'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/password/encrypt', methods=['POST'])
+@login_required
+def encrypt_password():
+    """Cifrar contraseña AES con llave pública de un miembro"""
+    user_id = session['user_id']
+    system = get_user_system(user_id)
+    
+    data = request.json
+    aes_password = data.get('aes_password')
+    member_id = data.get('member_id')
+    
+    if not aes_password or not member_id:
+        return jsonify({'error': 'Faltan parámetros'}), 400
+    
+    try:
+        # Guardar temporalmente la contraseña en un archivo
+        temp_password_file = f'temp_password_{user_id}.txt'
+        with open(temp_password_file, 'w') as f:
+            f.write(aes_password)
+        
+        # Cifrar con la llave pública del miembro
+        result = system['key_encryptor'].encrypt_key_for_member(
+            temp_password_file, 
+            member_id,
+            system['key_gen']
+        )
+        
+        # Eliminar archivo temporal
+        if os.path.exists(temp_password_file):
+            os.remove(temp_password_file)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'encrypted_file': result['encrypted_file'],
+                'member_id': member_id
+            })
+        else:
+            return jsonify({'error': result.get('error', 'Error desconocido')}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/password/decrypt', methods=['POST'])
+@login_required
+def decrypt_password():
+    """Descifrar contraseña AES con llave privada"""
+    user_id = session['user_id']
+    system = get_user_system(user_id)
+    
+    if not system['key_gen'].private_key:
+        return jsonify({'error': 'No hay llave privada cargada'}), 400
+    
+    data = request.json
+    encrypted_file = data.get('encrypted_file')
+    
+    if not encrypted_file:
+        return jsonify({'error': 'Falta parámetro encrypted_file'}), 400
+    
+    if not os.path.exists(encrypted_file):
+        return jsonify({'error': 'Archivo no encontrado'}), 404
+    
+    try:
+        result = system['key_decryptor'].decrypt_password(
+            encrypted_file,
+            system['key_gen'].private_key
+        )
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'aes_password': result['decrypted_password']
+            })
+        else:
+            return jsonify({'error': result.get('error', 'Error desconocido')}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/encrypt/document', methods=['POST'])
 @login_required
