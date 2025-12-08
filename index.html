@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Criptográfico Legal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-in { animation: slideIn 0.3s ease-out; }
+        .notification { animation: slideIn 0.3s ease-out; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .loading { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white min-h-screen">
+    
+    <!-- Login Screen -->
+    <div id="loginScreen" class="flex items-center justify-center min-h-screen p-6">
+        <div class="bg-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl border border-slate-700">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Sistema Criptográfico Legal
+                </h1>
+                <p class="text-gray-400">Inicia sesión para continuar</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Usuario</label>
+                    <input 
+                        type="text" 
+                        id="loginUserId" 
+                        class="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ej: Director, leah, mar"
+                    >
+                </div>
+                
+                <button 
+                    onclick="login()" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-medium transition-colors"
+                >
+                    Iniciar Sesión
+                </button>
+            </div>
+            
+            <div id="loginError" class="hidden mt-4 bg-red-900/50 border border-red-700 rounded-lg p-3 text-sm"></div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden min-h-screen p-6">
+        <div class="max-w-7xl mx-auto">
+            
+            <!-- Header -->
+            <div class="bg-slate-800 rounded-lg p-6 mb-6 shadow-xl border border-slate-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                            Sistema Criptográfico Legal
+                        </h1>
+                        <p class="text-gray-400">Gestión de documentos legales con firma digital y cifrado</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-400">Usuario actual</p>
+                        <p class="text-xl font-semibold" id="currentUserDisplay"></p>
+                        <button onclick="logout()" class="mt-2 text-sm text-red-400 hover:text-red-300">
+                            Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Area -->
+            <div id="notificationsArea" class="mb-6 space-y-2"></div>
+
+            <!-- Navigation -->
+            <div class="bg-slate-800 rounded-lg p-2 mb-6 flex gap-2 shadow-xl border border-slate-700">
+                <button onclick="showTab('dashboard')" class="tab-btn flex-1 py-3 px-4 rounded-lg font-medium transition-all" data-tab="dashboard">
+                    Dashboard
+                </button>
+                <button onclick="showTab('documents')" class="tab-btn flex-1 py-3 px-4 rounded-lg font-medium transition-all" data-tab="documents">
+                    Documentos
+                </button>
+                <button onclick="showTab('keys')" class="tab-btn flex-1 py-3 px-4 rounded-lg font-medium transition-all" data-tab="keys">
+                    Llaves
+                </button>
+                <button onclick="showTab('encryption')" class="tab-btn flex-1 py-3 px-4 rounded-lg font-medium transition-all" data-tab="encryption">
+                    Cifrado
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="bg-slate-800 rounded-lg p-6 shadow-xl border border-slate-700">
+                
+                <!-- Dashboard Tab -->
+                <div id="dashboardTab" class="tab-content">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-2xl">📄</span>
+                                <span class="text-3xl font-bold" id="statTotalDocs">0</span>
+                            </div>
+                            <p class="text-sm opacity-90">Documentos Totales</p>
+                        </div>
+                        
+                        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-2xl">✍️</span>
+                                <span class="text-3xl font-bold" id="statSignedDocs">0</span>
+                            </div>
+                            <p class="text-sm opacity-90">Documentos Firmados</p>
+                        </div>
+                        
+                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-2xl">🔒</span>
+                                <span class="text-3xl font-bold" id="statEncryptedDocs">0</span>
+                            </div>
+                            <p class="text-sm opacity-90">Cifrados</p>
+                        </div>
+                        
+                        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-2xl">👥</span>
+                                <span class="text-3xl font-bold" id="statTeamMembers">0</span>
+                            </div>
+                            <p class="text-sm opacity-90">Miembros del Equipo</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-700 rounded-lg p-6 mb-6">
+                        <h3 class="text-lg font-semibold mb-4">🛡️ Estado de Seguridad</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span>🔑 Llave Privada</span>
+                                <span id="statusPrivateKey" class="text-sm">Cargando...</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span>🔑 Llave Pública</span>
+                                <span id="statusPublicKey" class="text-sm">Cargando...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-700 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">📋 Documentos Recientes</h3>
+                        <div id="recentDocuments" class="space-y-3">
+                            <p class="text-gray-400 text-center py-8">Cargando documentos...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documents Tab -->
+                <div id="documentsTab" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold">Gestión de Documentos</h2>
+                        <label class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg cursor-pointer transition-colors">
+                            📤 Subir Documento
+                            <input type="file" id="uploadDocInput" class="hidden" onchange="uploadDocument()">
+                        </label>
+                    </div>
+
+                    <div id="documentsList" class="space-y-4">
+                        <p class="text-gray-400 text-center py-8">Cargando documentos...</p>
+                    </div>
+                </div>
+
+                <!-- Keys Tab -->
+                <div id="keysTab" class="tab-content hidden">
+                    <h2 class="text-2xl font-bold mb-6">Gestión de Llaves</h2>
+
+                    <div class="bg-slate-700 rounded-lg p-6 mb-6">
+                        <h3 class="text-lg font-semibold mb-4">🔑 Mis Llaves</h3>
+                        <div class="space-y-4">
+                            <div class="bg-slate-600 rounded p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium">Llave Privada</span>
+                                    <span id="keyStatusPrivate" class="text-sm">...</span>
+                                </div>
+                                <button onclick="generateKeys()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm transition-colors">
+                                    Generar Nuevas Llaves
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-700 rounded-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">👥 Equipo Registrado</h3>
+                            <button onclick="showAddMemberModal()" class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm transition-colors">
+                                Agregar Miembro
+                            </button>
+                        </div>
+                        <div id="teamMembersList" class="space-y-3">
+                            <p class="text-gray-400 text-center py-4">Cargando equipo...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Encryption Tab -->
+                <div id="encryptionTab" class="tab-content hidden">
+                    <h2 class="text-2xl font-bold mb-6">Cifrado y Descifrado</h2>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Encrypt Section -->
+                        <div class="bg-slate-700 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4">🔒 Cifrar Documento</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Documento</label>
+                                    <input 
+                                        type="text" 
+                                        id="encryptFilePath" 
+                                        placeholder="uploads/documento.pdf"
+                                        class="w-full bg-slate-600 border border-slate-500 rounded px-3 py-2 text-sm"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Contraseña</label>
+                                    <input 
+                                        type="password" 
+                                        id="encryptPassword" 
+                                        placeholder="Contraseña segura"
+                                        class="w-full bg-slate-600 border border-slate-500 rounded px-3 py-2 text-sm"
+                                    >
+                                </div>
+                                <button onclick="encryptDocument()" class="w-full bg-green-600 hover:bg-green-700 py-3 rounded font-medium transition-colors">
+                                    🔒 Cifrar Documento
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Decrypt Section -->
+                        <div class="bg-slate-700 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4">🔓 Descifrar Documento</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Archivo Cifrado (.enc)</label>
+                                    <input 
+                                        type="text" 
+                                        id="decryptFilePath" 
+                                        placeholder="uploads/documento.pdf.enc"
+                                        class="w-full bg-slate-600 border border-slate-500 rounded px-3 py-2 text-sm"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Metadatos (.meta)</label>
+                                    <input 
+                                        type="text" 
+                                        id="decryptMetaPath" 
+                                        placeholder="uploads/documento.pdf.meta"
+                                        class="w-full bg-slate-600 border border-slate-500 rounded px-3 py-2 text-sm"
+                                    >
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Contraseña</label>
+                                    <input 
+                                        type="password" 
+                                        id="decryptPassword" 
+                                        placeholder="Contraseña"
+                                        class="w-full bg-slate-600 border border-slate-500 rounded px-3 py-2 text-sm"
+                                    >
+                                </div>
+                                <button onclick="decryptDocument()" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded font-medium transition-colors">
+                                    🔓 Descifrar Documento
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let currentUser = null;
+
+        // ============================================================================
+        // AUTHENTICATION
+        // ============================================================================
+
+        async function login() {
+            const userId = document.getElementById('loginUserId').value.trim();
+            
+            if (!userId) {
+                showError('loginError', 'Por favor ingresa un ID de usuario');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ user_id: userId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentUser = userId;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    document.getElementById('currentUserDisplay').textContent = userId;
+                    
+                    showNotification(`Bienvenido, ${userId}`, 'success');
+                    loadDashboard();
+                    showTab('dashboard');
+                } else {
+                    showError('loginError', data.error || 'Error al iniciar sesión');
+                }
+            } catch (error) {
+                showError('loginError', 'Error de conexión con el servidor');
+                console.error(error);
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch(`${API_URL}/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+            }
+
+            currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('loginUserId').value = '';
+        }
+
+        // ============================================================================
+        // UI HELPERS
+        // ============================================================================
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                    btn.classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-slate-700');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                    btn.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-slate-700');
+                }
+            });
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+
+            if (tabName === 'dashboard') loadDashboard();
+            if (tabName === 'documents') loadDocuments();
+            if (tabName === 'keys') loadKeys();
+        }
+
+        function showNotification(message, type = 'info') {
+            const area = document.getElementById('notificationsArea');
+            const notif = document.createElement('div');
+            notif.className = `notification bg-slate-800 border-l-4 p-4 rounded ${
+                type === 'success' ? 'border-green-500' :
+                type === 'error' ? 'border-red-500' :
+                'border-blue-500'
+            }`;
+            notif.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>${message}</span>
+                    <span class="text-xs text-gray-400">${new Date().toLocaleTimeString()}</span>
+                </div>
+            `;
+            area.prepend(notif);
+            setTimeout(() => notif.remove(), 5000);
+        }
+
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+        // ============================================================================
+        // DASHBOARD
+        // ============================================================================
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_URL}/stats/dashboard`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                document.getElementById('statTotalDocs').textContent = data.total_documents;
+                document.getElementById('statSignedDocs').textContent = data.signed_documents;
+                document.getElementById('statEncryptedDocs').textContent = data.encrypted_documents;
+                document.getElementById('statTeamMembers').textContent = data.team_members;
+
+                document.getElementById('statusPrivateKey').textContent = 
+                    data.has_private_key ? '✅ Cargada' : '❌ No cargada';
+                document.getElementById('statusPublicKey').textContent = 
+                    data.has_public_key ? '✅ Cargada' : '❌ No cargada';
+
+            } catch (error) {
+                console.error('Error cargando dashboard:', error);
+            }
+
+            loadDocuments(true);
+        }
+
+        // ============================================================================
+        // DOCUMENTS
+        // ============================================================================
+
+        async function loadDocuments(recentOnly = false) {
+            try {
+                const response = await fetch(`${API_URL}/documents/list`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                const docs = recentOnly ? data.documents.slice(0, 3) : data.documents;
+                const targetEl = recentOnly ? 'recentDocuments' : 'documentsList';
+                const container = document.getElementById(targetEl);
+
+                if (docs.length === 0) {
+                    container.innerHTML = '<p class="text-gray-400 text-center py-8">No hay documentos</p>';
+                    return;
+                }
+
+                container.innerHTML = docs.map(doc => `
+                    <div class="bg-slate-700 rounded-lg p-4 hover:bg-slate-600 transition-colors">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <p class="font-medium">${doc.name}</p>
+                                <p class="text-sm text-gray-400">${formatBytes(doc.size)}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                ${doc.has_signature ? '<span class="text-green-500 text-sm">✓ Firmado</span>' : ''}
+                                ${doc.is_encrypted ? '<span class="text-blue-500 text-sm">🔒 Cifrado</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="signDocument('${doc.path}')" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm transition-colors">
+                                ✍️ Firmar
+                            </button>
+                            <button onclick="verifySignature('${doc.path}')" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm transition-colors">
+                                ✓ Verificar
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error cargando documentos:', error);
+            }
+        }
+
+        async function uploadDocument() {
+            const input = document.getElementById('uploadDocInput');
+            const file = input.files[0];
+            
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_URL}/documents/upload`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification(`Documento "${data.filename}" subido exitosamente`, 'success');
+                    loadDocuments();
+                } else {
+                    showNotification(data.error || 'Error al subir documento', 'error');
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                console.error(error);
+            }
+
+            input.value = '';
+        }
+
+        async function signDocument(filePath) {
+            try {
+                const response = await fetch(`${API_URL}/sign/document`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ file_path: filePath })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification(`Documento firmado exitosamente`, 'success');
+                    loadDocuments();
+                } else {
+                    showNotification(data.error || 'Error al firmar documento', 'error');
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                console.error(error);
+            }
+        }
+
+        async function verifySignature(filePath) {
+            const sigFile = prompt('Ingresa la ruta del archivo de firma:');
+            if (!sigFile) return;
+
+            try {
+                const response = await fetch(`${API_URL}/sign/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        file_path: filePath,
+                        signature_file: sigFile
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.valid) {
+                        showNotification(`✅ Firma válida de ${data.signer}`, 'success');
+                    } else {
+                        showNotification('❌ Firma inválida', 'error');
+                    }
+                } else {
+                    showNotification(data.error || 'Error al verificar firma', 'error');
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                console.error(error);
+            }
+        }
+
+        // ============================================================================
+        // KEYS
+        // ============================================================================
+
+        async function loadKeys() {
+            try {
+                const response = await fetch(`${API_URL}/keys/status`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                document.getElementById('keyStatusPrivate').textContent = 
+                    data.private_key_loaded ? '✅ Cargada' : '❌ No cargada';
+
+                const teamResponse = await fetch(`${API_URL}/keys/team/list`, {
+                    credentials: 'include'
+                });
+                const teamData = await teamResponse.json();
+
+                const container = document.getElementById('teamMembersList');
+                if (teamData.members.length === 0) {
+                    container.innerHTML = '<p class="text-gray-400 text-center py-4">No hay miembros registrados</p>';
+                    return;
+                }
+
+                container.innerHTML = teamData.members.map(member => `
+                    <div class="bg-slate-600 rounded p-4 flex items-center justify-between">
+                        <div>
+                            <p class="font-medium">${member.id}</p>
+                        </div>
+                        <span class="text-green-500 text-sm">✓ Llaves registradas</span>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error cargando llaves:', error);
+            }
+        }
+
+        async function generateKeys() {
+            if (!confirm('¿Generar nuevas llaves? Esto sobrescribirá las llaves existentes.')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/keys/generate`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Llaves generadas exitosamente', 'success');
+                    loadKeys();
+                    loadDashboard();
+                } else {
+                    showNotification(data.error || 'Error al generar llaves', 'error');
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                console.error(error);
+            }
+        }
+
+        function showAddMemberModal() {
+            const memberId = prompt('Ingresa el ID del miembro a agregar:');
+            if (!memberId) return;
+            addTeamMember(memberId);
+        }
+
+        async function addTeamMember(memberId) {
+            try {
+                const response = await fetch(`${API_URL}/keys/team/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ member_id: memberId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification(data.message, 'success');
+                    loadKeys();
+                } else {
+                    showNotification(data.error || 'Error al agregar miembro', 'error');
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                console.error(error);
+            }
+        }
+
+        // ============================================================================
+        // ENCRYPTION
+        // ============================================================================
+
+        async function encryptDocument() {
+            const filePath = document.getElementById('encryptFilePath').value;
+            const password = document.getElementById('encryptPassword').value;
+
+            if (!filePath || !password) {
+                showNotification('Completa todos los campos', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/encrypt/document`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ file_path: filePath, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Documento cifrado exitosamente', 'success');
+                    document.getElementById('encryptFilePath').value = '';
+                    document.getElementById('encryptPassword').value = '';
+                } else {
+                    showNotification(data.error || 'Error al cifrar documento', 'error');
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                console.error(error);
+            }
+        }
+
+        async function decryptDocument() {
+            const encryptedFile = document.getElementById('decryptFilePath').value;
+            const metadataFile = document.getElementById('decryptMetaPath').value;
+            const password = document.getElementById('decryptPassword').value;
+
+            if (!encryptedFile || !metadataFile || !password) {
+                showNotification('Completa todos los campos', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/decrypt/document`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        encrypted_file: encryptedFile,
+                        metadata_file: metadataFile,
+                        password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Documento descifrado exitosamente', 'success');
+                    document.getElementById('decryptFilePath').value = '';
+                    document.getElementById('decryptMetaPath').value = '';
+                    document.getElementById('decryptPassword').value = '';
+                } else {
+                    showNotification(data.error || 'Error al descifrar documento', 'error');
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                console.error(error);
+            }
+        }
+
+        // ============================================================================
+        // UTILITIES
+        // ============================================================================
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Check auth on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_URL}/auth/status`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.authenticated) {
+                    currentUser = data.user_id;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    document.getElementById('currentUserDisplay').textContent = data.user_id;
+                    loadDashboard();
+                    showTab('dashboard');
+                }
+            } catch (error) {
+                console.error('Error verificando autenticación:', error);
+            }
+        });
+    </script>
+</body>
+</html>
