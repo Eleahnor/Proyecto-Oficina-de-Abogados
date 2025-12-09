@@ -21,9 +21,20 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-# Crear directorios necesarios
-for folder in ['uploads', 'keys', 'documents', 'signatures']:
-    os.makedirs(folder, exist_ok=True)
+# Obtener directorio base del proyecto
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Crear directorios necesarios con rutas absolutas
+FOLDERS = {
+    'uploads': os.path.join(BASE_DIR, 'uploads'),
+    'keys': os.path.join(BASE_DIR, 'keys'),
+    'documents': os.path.join(BASE_DIR, 'documents'),
+    'signatures': os.path.join(BASE_DIR, 'signatures')
+}
+
+for folder_name, folder_path in FOLDERS.items():
+    os.makedirs(folder_path, exist_ok=True)
+    print(f"✓ Directorio creado/verificado: {folder_path}")
 
 # Configuración de equipos y usuarios
 TEAMS_CONFIG = {
@@ -33,7 +44,7 @@ TEAMS_CONFIG = {
             {"username": "Ramírez", "password": "mar789", "role": "cliente"},
             {"username": "Hidalgo", "password": "daniel789", "role": "cliente"}
         ],
-        "otro": {"username": "Mejía", "password": "avril123", "role": "otro"}
+        "otro": {"username": "admin", "password": "admin", "role": "otro"}
     },
     "Divorcio": {
         "abogado": {"username": "Cruz", "password": "daniel456", "role": "abogado"},
@@ -41,12 +52,12 @@ TEAMS_CONFIG = {
             {"username": "Pérez", "password": "mar456", "role": "cliente"},
             {"username": "Perejil", "password": "avril456", "role": "cliente"}
         ],
-        "otro": {"username": "Estrada", "password": "daniel123", "role": "otro"}
+        "otro": {"username": "admin", "password": "admin", "role": "otro"}
     },
     "Asunto hipotecario": {
         "abogado": {"username": "Castro", "password": "mar123", "role": "abogado"},
         "clientes": [
-            {"username": "Pérez", "password": "mar456", "role": "cliente"}
+            {"username": "Mejía", "password": "avril123", "role": "cliente"}
         ],
         "otro": {"username": "Estrada", "password": "daniel123", "role": "otro"}
     }
