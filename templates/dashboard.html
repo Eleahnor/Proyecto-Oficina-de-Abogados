@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema Legal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 30px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 25px;
+            background: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: #666;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-item strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #667eea;
+        }
+
+        .document-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .document-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .document-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .document-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .key-display {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .team-selector {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid white;
+            color: white;
+            cursor: pointer;
+        }
+
+        .team-selector option {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>⚖️ Sistema Legal - Dashboard</h1>
+            <div class="user-info">
+                <select id="teamSelector" class="team-selector" style="display: none;">
+                </select>
+                <div class="user-badge">
+                    <span id="userName">Usuario</span> - 
+                    <span id="userRole">Rol</span>
+                </div>
+                <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="globalAlert" class="alert"></div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('info')">📊 Información</button>
+            <button class="tab" onclick="showTab('keys')">🔑 Gestión de Llaves</button>
+            <button class="tab" onclick="showTab('documents')">📄 Documentos</button>
+            <button class="tab" onclick="showTab('encrypt')">🔒 Cifrado</button>
+            <button class="tab" onclick="showTab('sign')">✍️ Firmas</button>
+        </div>
+
+        <!-- Tab: Información -->
+        <div id="tab-info" class="tab-content active">
+            <h2 class="section-title">Información del Usuario y Equipo</h2>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <strong>👤 Usuario</strong>
+                    <span id="infoUsername">-</span>
+                </div>
+                <div class="info-item">
+                    <strong>🏢 Equipo</strong>
+                    <span id="infoTeam">-</span>
+                </div>
+                <div class="info-item">
+                    <strong>👥 Rol</strong>
+                    <span id="infoRole">-</span>
+                </div>
+                <div class="info-item">
+                    <strong>🔐 Estado de Llaves</strong>
+                    <span id="infoKeyStatus">-</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">👥 Miembros del Equipo</h3>
+                <ul id="teamMembersList"></ul>
+            </div>
+        </div>
+
+        <!-- Tab: Gestión de Llaves -->
+        <div id="tab-keys" class="tab-content">
+            <h2 class="section-title">🔑 Gestión de Llaves RSA</h2>
+            
+            <div class="card">
+                <h3 class="card-title">Generar Par de Llaves</h3>
+                <p style="margin-bottom: 15px;">Genera tu par de llaves RSA (pública y privada) para firmar y descifrar documentos.</p>
+                <button class="btn btn-primary" onclick="generateKeys()">Generar Mis Llaves</button>
+                <button class="btn btn-secondary" onclick="downloadPrivateKey()" style="margin-left: 10px;">Descargar Llave Privada</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Llaves Públicas del Equipo</h3>
+                <ul id="teamKeysList"></ul>
+            </div>
+        </div>
+
+        <!-- Tab: Documentos -->
+        <div id="tab-documents" class="tab-content">
+            <h2 class="section-title">📄 Gestión de Documentos</h2>
+            
+            <div class="card" id="uploadCard">
+                <h3 class="card-title">Subir Documento (Solo PDF)</h3>
+                <div class="form-group">
+                    <input type="file" id="fileUpload" accept=".pdf">
+                </div>
+                <button class="btn btn-primary" onclick="uploadDocument()">Subir Documento</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Documentos del Equipo</h3>
+                <button class="btn btn-secondary btn-small" onclick="refreshDocuments()" style="margin-bottom: 15px;">🔄 Actualizar</button>
+                <div id="documentsList" class="document-list"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Cifrado -->
+        <div id="tab-encrypt" class="tab-content">
+            <h2 class="section-title">🔒 Cifrado y Descifrado de Documentos</h2>
+            
+            <div class="card" id="encryptCard">
+                <h3 class="card-title">1. Generar Llave AES</h3>
+                <button class="btn btn-success" onclick="generateAESKey()">Generar Llave AES</button>
+                <div id="aesKeyDisplay" style="display: none;">
+                    <label style="margin-top: 15px; display: block;">Llave AES (copiar para usar):</label>
+                    <textarea id="aesKeyText" class="key-display" rows="3" readonly></textarea>
+                    <button class="btn btn-secondary btn-small" onclick="copyAESKey()" style="margin-top: 10px;">📋 Copiar</button>
+                </div>
+            </div>
+
+            <div class="card" id="encryptDocCard">
+                <h3 class="card-title">2. Cifrar Documento</h3>
+                <div class="form-group">
+                    <label>Documento a cifrar:</label>
+                    <select id="docToEncrypt"></select>
+                </div>
+                <div class="form-group">
+                    <label>Llave AES (pegar aquí):</label>
+                    <textarea id="aesKeyForEncrypt" rows="3"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="encryptDocument()">Cifrar Documento</button>
+            </div>
+
+            <div class="card" id="wrapKeyCard">
+                <h3 class="card-title">3. Cifrar Llave AES para Miembro</h3>
+                <div class="form-group">
+                    <label>Archivo de llave (.key):</label>
+                    <select id="keyFileToWrap"></select>
+                </div>
+                <div class="form-group">
+                    <label>Destinatario:</label>
+                    <select id="recipientForKey"></select>
+                </div>
+                <button class="btn btn-success" onclick="wrapKey()">Cifrar Llave para Miembro</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">4. Descifrar Llave AES (Recibida)</h3>
+                <div class="form-group">
+                    <label>Llave cifrada recibida (.enc):</label>
+                    <select id="wrappedKeyFile"></select>
+                </div>
+                <button class="btn btn-primary" onclick="unwrapKey()">Descifrar Llave AES</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">5. Descifrar Documento</h3>
+                <div class="form-group">
+                    <label>Documento cifrado (.enc):</label>
+                    <select id="encryptedDocFile"></select>
+                </div>
+                <div class="form-group">
+                    <label>Archivo de llave (.key):</label>
+                    <select id="keyFileForDecrypt"></select>
+                </div>
+                <button class="btn btn-success" onclick="decryptDocument()">Descifrar Documento</button>
+            </div>
+        </div>
+
+        <!-- Tab: Firmas -->
+        <div id="tab-sign" class="tab-content">
+            <h2 class="section-title">✍️ Firmas Digitales</h2>
+            
+            <div class="card">
+                <h3 class="card-title">Firmar Documento</h3>
+                <div class="form-group">
+                    <label>Seleccionar documento:</label>
+                    <select id="docToSign"></select>
+                </div>
+                <button class="btn btn-primary" onclick="signDocument()">Firmar Documento</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Verificar Firmas</h3>
+                <div class="form-group">
+                    <label>Documento a verificar:</label>
+                    <select id="docToVerify"></select>
+                </div>
+                <div class="form-group">
+                    <label>Archivos de firma (mantén Ctrl/Cmd para selección múltiple):</label>
+                    <select id="signatureFiles" multiple size="5"></select>
+                </div>
+                <button class="btn btn-success" onclick="verifySignatures()">Verificar Firmas</button>
+                <div id="verificationResults" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>
