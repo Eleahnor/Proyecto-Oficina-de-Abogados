@@ -1,13 +1,10 @@
-from flask import Flask, request, jsonify, session, send_file
-from flask_cors import CORS
+from flask import Flask, render_template, request, jsonify, session, send_file, redirect, url_for
 from werkzeug.utils import secure_filename
 import os
 import json
-import hashlib
-import base64
 import secrets
-from datetime import datetime, timedelta
 from functools import wraps
+from datetime import timedelta
 
 # Importar módulos existentes
 from sign.digital_signer import DigitalSigner
@@ -20,696 +17,589 @@ from cipher.decifradollave import KeyDecryptor
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-CORS(app)
-
-# Crear carpetas necesarias
-for folder in ['uploads', 'encrypted', 'signatures', 'data']:
+# Crear directorios necesarios
+for folder in ['uploads', 'keys', 'documents', 'signatures']:
     os.makedirs(folder, exist_ok=True)
 
-# Archivo de usuarios
-USERS_FILE = 'data/usuarios.json'
-GROUPS_FILE = 'data/grupos.json'
+# Configuración de equipos y usuarios
+TEAMS_CONFIG = {
+    "Pensión alimenticia": {
+        "abogado": {"username": "Boloñesa", "password": "avril789", "role": "abogado"},
+        "clientes": [
+            {"username": "Ramírez", "password": "mar789", "role": "cliente"},
+            {"username": "Hidalgo", "password": "daniel789", "role": "cliente"}
+        ],
+        "otro": {"username": "Mejía", "password": "avril123", "role": "otro"}
+    },
+    "Divorcio": {
+        "abogado": {"username": "Cruz", "password": "daniel456", "role": "abogado"},
+        "clientes": [
+            {"username": "Pérez", "password": "mar456", "role": "cliente"},
+            {"username": "Perejil", "password": "avril456", "role": "cliente"}
+        ],
+        "otro": {"username": "Estrada", "password": "daniel123", "role": "otro"}
+    },
+    "Asunto hipotecario": {
+        "abogado": {"username": "Castro", "password": "mar123", "role": "abogado"},
+        "clientes": [
+            {"username": "Pérez", "password": "mar456", "role": "cliente"}
+        ],
+        "otro": {"username": "Estrada", "password": "daniel123", "role": "otro"}
+    }
+}
 
-# Diccionario para sistemas de usuario
-user_systems = {}
-
-# ============================================================================
-# GESTIÓN DE USUARIOS Y GRUPOS
-# ============================================================================
-
-def init_users_file():
-    """Inicializa el archivo de usuarios con usuarios por defecto"""
-    if not os.path.exists(USERS_FILE):
-        default_users = {
-            "Director": {
-                "password_hash": hashlib.sha256("director123".encode()).hexdigest(),
-                "role": "director",
-                "email": "director@legal.com",
-                "created_at": datetime.now().isoformat()
-            },
-            "Abogado1": {
-                "password_hash": hashlib.sha256("abogado123".encode()).hexdigest(),
-                "role": "abogado",
-                "email": "abogado1@legal.com",
-                "created_at": datetime.now().isoformat()
-            },
-            "Abogado2": {
-                "password_hash": hashlib.sha256("abogado123".encode()).hexdigest(),
-                "role": "abogado",
-                "email": "abogado2@legal.com",
-                "created_at": datetime.now().isoformat()
-            }
-        }
-        with open(USERS_FILE, 'w') as f:
-            json.dump(default_users, f, indent=2)
-        print("✅ Archivo de usuarios creado con usuarios por defecto")
-        print("   Director: director123")
-        print("   Abogado1: abogado123")
-        print("   Abogado2: abogado123")
-
-def init_groups_file():
-    """Inicializa el archivo de grupos"""
-    if not os.path.exists(GROUPS_FILE):
-        with open(GROUPS_FILE, 'w') as f:
-            json.dump({}, f, indent=2)
-
-def load_users():
-    """Carga usuarios desde archivo"""
-    try:
-        with open(USERS_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_users(users):
-    """Guarda usuarios en archivo"""
-    with open(USERS_FILE, 'w') as f:
-        json.dump(users, f, indent=2)
-
-def load_groups():
-    """Carga grupos desde archivo"""
-    try:
-        with open(GROUPS_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_groups(groups):
-    """Guarda grupos en archivo"""
-    with open(GROUPS_FILE, 'w') as f:
-        json.dump(groups, f, indent=2)
-
-def get_user_system(user_id):
-    """Obtener o crear sistema para un usuario"""
-    if user_id not in user_systems:
-        key_gen = KeyGenerator()
-        key_gen.user_id = user_id
-        
-        if os.path.exists("team_public_keys.json"):
-            key_gen.load_public_keys_from_file("team_public_keys.json")
-        
-        key_gen.load_private_key(user_id)
-        
-        user_systems[user_id] = {
-            'key_gen': key_gen,
-            'signer': DigitalSigner(key_gen),
-            'verifier': SignatureVerifier(key_gen),
-            'encryptor': DocumentEncryptor(),
-            'decryptor': DocumentDecryptor(),
-            'key_encryptor': KeyEncryptor(),
-            'key_decryptor': KeyDecryptor()
-        }
+# Crear índice de usuarios para login rápido
+USERS_INDEX = {}
+for team_name, team_data in TEAMS_CONFIG.items():
+    abogado = team_data["abogado"]
+    USERS_INDEX[abogado["username"]] = {
+        **abogado,
+        "team": team_name
+    }
     
-    return user_systems[user_id]
+    for cliente in team_data["clientes"]:
+        if cliente["username"] not in USERS_INDEX:
+            USERS_INDEX[cliente["username"]] = {
+                **cliente,
+                "team": team_name
+            }
+        else:
+            # Usuario en múltiples equipos
+            if isinstance(USERS_INDEX[cliente["username"]]["team"], list):
+                USERS_INDEX[cliente["username"]]["team"].append(team_name)
+            else:
+                USERS_INDEX[cliente["username"]]["team"] = [
+                    USERS_INDEX[cliente["username"]]["team"],
+                    team_name
+                ]
+    
+    otro = team_data["otro"]
+    if otro["username"] not in USERS_INDEX:
+        USERS_INDEX[otro["username"]] = {
+            **otro,
+            "team": team_name
+        }
+    else:
+        if isinstance(USERS_INDEX[otro["username"]]["team"], list):
+            USERS_INDEX[otro["username"]]["team"].append(team_name)
+        else:
+            USERS_INDEX[otro["username"]]["team"] = [
+                USERS_INDEX[otro["username"]]["team"],
+                team_name
+            ]
 
+# Decorador para requerir login
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'No autenticado'}), 401
+        if 'username' not in session:
+            return jsonify({'success': False, 'error': 'Sesión no iniciada'}), 401
         return f(*args, **kwargs)
     return decorated_function
 
-def director_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'No autenticado'}), 401
-        
-        users = load_users()
-        user = users.get(session['user_id'])
-        if not user or user.get('role') != 'director':
-            return jsonify({'error': 'Acceso denegado - Solo directores'}), 403
-        
-        return f(*args, **kwargs)
-    return decorated_function
+# Función auxiliar para obtener instancias del usuario
+def get_user_instances(username):
+    """Obtiene las instancias de KeyGenerator, Signer, etc. para el usuario"""
+    key_gen = KeyGenerator(username)
+    
+    # Cargar llave privada si existe
+    key_gen.load_private_key(username)
+    
+    # Cargar llaves públicas del equipo
+    team_keys_file = f"keys/team_{session.get('current_team', '')}_public_keys.json"
+    if os.path.exists(team_keys_file):
+        key_gen.load_public_keys_from_file(team_keys_file)
+    
+    signer = DigitalSigner(key_gen)
+    verifier = SignatureVerifier(key_gen)
+    encryptor = DocumentEncryptor()
+    decryptor = DocumentDecryptor()
+    key_encryptor = KeyEncryptor()
+    key_decryptor = KeyDecryptor()
+    
+    return {
+        'key_gen': key_gen,
+        'signer': signer,
+        'verifier': verifier,
+        'encryptor': encryptor,
+        'decryptor': decryptor,
+        'key_encryptor': key_encryptor,
+        'key_decryptor': key_decryptor
+    }
 
-# ============================================================================
-# AUTENTICACIÓN
-# ============================================================================
+# ============= RUTAS DE AUTENTICACIÓN =============
 
-@app.route('/api/auth/login', methods=['POST'])
+@app.route('/')
+def index():
+    if 'username' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
 def login():
-    """Login con validación de usuario y contraseña"""
-    data = request.json
-    user_id = data.get('user_id')
+    data = request.get_json()
+    username = data.get('username')
     password = data.get('password')
     
-    if not user_id or not password:
-        return jsonify({'error': 'Usuario y contraseña requeridos'}), 400
+    if username in USERS_INDEX and USERS_INDEX[username]['password'] == password:
+        user_data = USERS_INDEX[username]
+        session.permanent = True
+        session['username'] = username
+        session['role'] = user_data['role']
+        
+        # Manejar usuarios en múltiples equipos
+        if isinstance(user_data['team'], list):
+            session['teams'] = user_data['team']
+            session['current_team'] = user_data['team'][0]  # Default al primer equipo
+        else:
+            session['current_team'] = user_data['team']
+            session['teams'] = [user_data['team']]
+        
+        return jsonify({
+            'success': True,
+            'username': username,
+            'role': user_data['role'],
+            'team': session['current_team'],
+            'teams': session['teams']
+        })
     
-    users = load_users()
-    user = users.get(user_id)
-    
-    if not user:
-        return jsonify({'error': 'Usuario no encontrado'}), 401
-    
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    if password_hash != user['password_hash']:
-        return jsonify({'error': 'Contraseña incorrecta'}), 401
-    
-    session['user_id'] = user_id
-    session['role'] = user.get('role', 'abogado')
-    session.permanent = True
-    
-    # Actualizar último login
-    user['last_login'] = datetime.now().isoformat()
-    save_users(users)
-    
-    system = get_user_system(user_id)
-    
-    return jsonify({
-        'success': True,
-        'user_id': user_id,
-        'role': user.get('role'),
-        'has_private_key': system['key_gen'].private_key is not None,
-        'has_public_key': system['key_gen'].public_key is not None,
-        'team_members': len(system['key_gen'].team_public_keys)
-    })
+    return jsonify({'success': False, 'error': 'Credenciales inválidas'}), 401
 
-@app.route('/api/auth/logout', methods=['POST'])
+@app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
     return jsonify({'success': True})
 
-@app.route('/api/auth/status', methods=['GET'])
-def auth_status():
-    if 'user_id' not in session:
-        return jsonify({'authenticated': False})
-    
-    user_id = session['user_id']
-    system = get_user_system(user_id)
-    
-    return jsonify({
-        'authenticated': True,
-        'user_id': user_id,
-        'role': session.get('role', 'abogado'),
-        'has_private_key': system['key_gen'].private_key is not None,
-        'has_public_key': system['key_gen'].public_key is not None,
-        'team_members': len(system['key_gen'].team_public_keys)
-    })
-
-# ============================================================================
-# GESTIÓN DE USUARIOS (Solo Director)
-# ============================================================================
-
-@app.route('/api/users/list', methods=['GET'])
+@app.route('/switch_team', methods=['POST'])
 @login_required
-def list_users():
-    """Listar todos los usuarios"""
-    users = load_users()
-    user_list = []
+def switch_team():
+    data = request.get_json()
+    new_team = data.get('team')
     
-    for user_id, user_data in users.items():
-        user_list.append({
-            'user_id': user_id,
-            'role': user_data.get('role', 'abogado'),
-            'email': user_data.get('email', ''),
-            'created_at': user_data.get('created_at', ''),
-            'has_keys': os.path.exists(f'private_key_{user_id}.pem')
-        })
+    if new_team in session.get('teams', []):
+        session['current_team'] = new_team
+        return jsonify({'success': True, 'team': new_team})
     
-    return jsonify({'users': user_list})
+    return jsonify({'success': False, 'error': 'Equipo no autorizado'}), 403
 
-@app.route('/api/users/create', methods=['POST'])
-@director_required
-def create_user():
-    """Crear nuevo usuario (solo director)"""
-    data = request.json
-    user_id = data.get('user_id')
-    password = data.get('password')
-    role = data.get('role', 'abogado')
-    email = data.get('email', '')
-    
-    if not user_id or not password:
-        return jsonify({'error': 'Usuario y contraseña requeridos'}), 400
-    
-    users = load_users()
-    
-    if user_id in users:
-        return jsonify({'error': 'El usuario ya existe'}), 400
-    
-    users[user_id] = {
-        'password_hash': hashlib.sha256(password.encode()).hexdigest(),
-        'role': role,
-        'email': email,
-        'created_at': datetime.now().isoformat(),
-        'created_by': session['user_id']
-    }
-    
-    save_users(users)
-    
-    return jsonify({
-        'success': True,
-        'message': f'Usuario {user_id} creado exitosamente'
-    })
+# ============= DASHBOARD =============
 
-@app.route('/api/users/delete/<user_id>', methods=['DELETE'])
-@director_required
-def delete_user(user_id):
-    """Eliminar usuario (solo director)"""
-    if user_id == session['user_id']:
-        return jsonify({'error': 'No puedes eliminar tu propio usuario'}), 400
-    
-    users = load_users()
-    
-    if user_id not in users:
-        return jsonify({'error': 'Usuario no encontrado'}), 404
-    
-    del users[user_id]
-    save_users(users)
-    
-    return jsonify({
-        'success': True,
-        'message': f'Usuario {user_id} eliminado'
-    })
-
-# ============================================================================
-# GESTIÓN DE GRUPOS (Solo Director)
-# ============================================================================
-
-@app.route('/api/groups/create', methods=['POST'])
-@director_required
-def create_group():
-    """Crear grupo de usuarios"""
-    data = request.json
-    group_name = data.get('group_name')
-    members = data.get('members', [])
-    
-    if not group_name:
-        return jsonify({'error': 'Nombre de grupo requerido'}), 400
-    
-    groups = load_groups()
-    
-    if group_name in groups:
-        return jsonify({'error': 'El grupo ya existe'}), 400
-    
-    groups[group_name] = {
-        'members': members,
-        'created_at': datetime.now().isoformat(),
-        'created_by': session['user_id']
-    }
-    
-    save_groups(groups)
-    
-    return jsonify({
-        'success': True,
-        'message': f'Grupo {group_name} creado con {len(members)} miembros'
-    })
-
-@app.route('/api/groups/list', methods=['GET'])
+@app.route('/dashboard')
 @login_required
-def list_groups():
-    """Listar grupos"""
-    groups = load_groups()
-    
-    group_list = []
-    for group_name, group_data in groups.items():
-        group_list.append({
-            'name': group_name,
-            'members': group_data.get('members', []),
-            'member_count': len(group_data.get('members', [])),
-            'created_at': group_data.get('created_at', ''),
-            'created_by': group_data.get('created_by', '')
-        })
-    
-    return jsonify({'groups': group_list})
+def dashboard():
+    return render_template('dashboard.html')
 
-@app.route('/api/groups/<group_name>', methods=['GET'])
+@app.route('/api/user_info')
 @login_required
-def get_group(group_name):
-    """Obtener detalles de un grupo"""
-    groups = load_groups()
+def user_info():
+    team_members = get_team_members(session['current_team'])
     
-    if group_name not in groups:
-        return jsonify({'error': 'Grupo no encontrado'}), 404
-    
-    group = groups[group_name]
-    return jsonify({
-        'name': group_name,
-        'members': group.get('members', []),
-        'created_at': group.get('created_at', ''),
-        'created_by': group.get('created_by', '')
-    })
-
-@app.route('/api/groups/<group_name>/members', methods=['POST'])
-@director_required
-def add_group_member(group_name):
-    """Agregar miembro a grupo"""
-    data = request.json
-    member_id = data.get('member_id')
-    
-    if not member_id:
-        return jsonify({'error': 'member_id requerido'}), 400
-    
-    groups = load_groups()
-    
-    if group_name not in groups:
-        return jsonify({'error': 'Grupo no encontrado'}), 404
-    
-    if member_id not in groups[group_name]['members']:
-        groups[group_name]['members'].append(member_id)
-        save_groups(groups)
+    # Verificar si el usuario tiene llaves generadas
+    private_key_exists = os.path.exists(f"keys/private_key_{session['username']}.pem")
     
     return jsonify({
-        'success': True,
-        'message': f'{member_id} agregado al grupo {group_name}'
+        'username': session['username'],
+        'role': session['role'],
+        'team': session['current_team'],
+        'teams': session.get('teams', [session['current_team']]),
+        'team_members': team_members,
+        'has_keys': private_key_exists
     })
 
-@app.route('/api/groups/<group_name>/members/<member_id>', methods=['DELETE'])
-@director_required
-def remove_group_member(group_name, member_id):
-    """Remover miembro de grupo"""
-    groups = load_groups()
+def get_team_members(team_name):
+    """Obtiene lista de miembros del equipo"""
+    if team_name not in TEAMS_CONFIG:
+        return []
     
-    if group_name not in groups:
-        return jsonify({'error': 'Grupo no encontrado'}), 404
+    team_data = TEAMS_CONFIG[team_name]
+    members = [team_data["abogado"]["username"]]
+    members.extend([c["username"] for c in team_data["clientes"]])
+    members.append(team_data["otro"]["username"])
     
-    if member_id in groups[group_name]['members']:
-        groups[group_name]['members'].remove(member_id)
-        save_groups(groups)
-    
-    return jsonify({
-        'success': True,
-        'message': f'{member_id} removido del grupo {group_name}'
-    })
+    return list(set(members))  # Eliminar duplicados
 
-@app.route('/api/groups/<group_name>', methods=['DELETE'])
-@director_required
-def delete_group(group_name):
-    """Eliminar grupo"""
-    groups = load_groups()
-    
-    if group_name not in groups:
-        return jsonify({'error': 'Grupo no encontrado'}), 404
-    
-    del groups[group_name]
-    save_groups(groups)
-    
-    return jsonify({
-        'success': True,
-        'message': f'Grupo {group_name} eliminado'
-    })
-
-# ============================================================================
-# GESTIÓN DE LLAVES
-# ============================================================================
+# ============= GESTIÓN DE LLAVES =============
 
 @app.route('/api/keys/generate', methods=['POST'])
 @login_required
 def generate_keys():
-    user_id = session['user_id']
-    system = get_user_system(user_id)
+    username = session['username']
+    instances = get_user_instances(username)
+    key_gen = instances['key_gen']
     
-    try:
-        public_key_pem = system['key_gen'].generate_key_pair()
-        system['key_gen'].add_team_member_public_key(user_id, public_key_pem)
-        system['key_gen'].save_public_keys_to_file("team_public_keys.json")
+    # Generar par de llaves
+    public_key_pem = key_gen.generate_key_pair()
+    
+    # Guardar en directorio keys/
+    private_file = f"keys/private_key_{username}.pem"
+    public_file = f"keys/public_key_{username}.pem"
+    
+    # Mover archivos generados al directorio keys/
+    if os.path.exists(f"private_key_{username}.pem"):
+        os.rename(f"private_key_{username}.pem", private_file)
+    if os.path.exists(f"public_key_{username}.pem"):
+        os.rename(f"public_key_{username}.pem", public_file)
+    
+    # Registrar llave pública en el equipo
+    team_keys_file = f"keys/team_{session['current_team']}_public_keys.json"
+    key_gen.add_team_member_public_key(username, public_key_pem)
+    key_gen.save_public_keys_to_file(team_keys_file)
+    
+    return jsonify({
+        'success': True,
+        'message': 'Llaves generadas exitosamente',
+        'public_key': public_key_pem
+    })
+
+@app.route('/api/keys/download_private', methods=['GET'])
+@login_required
+def download_private_key():
+    username = session['username']
+    filepath = f"keys/private_key_{username}.pem"
+    
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True)
+    
+    return jsonify({'success': False, 'error': 'Llave no encontrada'}), 404
+
+@app.route('/api/keys/team_members', methods=['GET'])
+@login_required
+def get_team_keys():
+    team_name = session['current_team']
+    team_keys_file = f"keys/team_{team_name}_public_keys.json"
+    
+    if os.path.exists(team_keys_file):
+        with open(team_keys_file, 'r') as f:
+            data = json.load(f)
         
         return jsonify({
             'success': True,
-            'message': 'Llaves generadas exitosamente'
+            'members': list(data.get('team_public_keys', {}).keys())
         })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/keys/status', methods=['GET'])
-@login_required
-def keys_status():
-    user_id = session['user_id']
-    system = get_user_system(user_id)
     
-    return jsonify({
-        'user_id': user_id,
-        'private_key_loaded': system['key_gen'].private_key is not None,
-        'public_key_loaded': system['key_gen'].public_key is not None,
-        'team_members': list(system['key_gen'].team_public_keys.keys())
-    })
+    return jsonify({'success': True, 'members': []})
 
-# ============================================================================
-# GESTIÓN DE DOCUMENTOS CON CONTROL DE ACCESO
-# ============================================================================
+# ============= GESTIÓN DE DOCUMENTOS =============
 
 @app.route('/api/documents/upload', methods=['POST'])
 @login_required
 def upload_document():
     if 'file' not in request.files:
-        return jsonify({'error': 'No se envió archivo'}), 400
+        return jsonify({'success': False, 'error': 'No se envió archivo'}), 400
     
     file = request.files['file']
-    group_name = request.form.get('group_name', '')
-    
     if file.filename == '':
-        return jsonify({'error': 'Nombre de archivo vacío'}), 400
+        return jsonify({'success': False, 'error': 'Nombre de archivo vacío'}), 400
+    
+    # Validar que sea PDF
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({'success': False, 'error': 'Solo se permiten archivos PDF'}), 400
     
     filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    team_folder = f"documents/{session['current_team']}"
+    os.makedirs(team_folder, exist_ok=True)
+    
+    filepath = os.path.join(team_folder, filename)
     file.save(filepath)
-    
-    # Guardar metadata del documento
-    metadata = {
-        'filename': filename,
-        'uploaded_by': session['user_id'],
-        'uploaded_at': datetime.now().isoformat(),
-        'group': group_name,
-        'size': os.path.getsize(filepath)
-    }
-    
-    metadata_file = filepath + '.metadata'
-    with open(metadata_file, 'w') as f:
-        json.dump(metadata, f, indent=2)
     
     return jsonify({
         'success': True,
         'filename': filename,
-        'group': group_name
+        'path': filepath
     })
 
 @app.route('/api/documents/list', methods=['GET'])
 @login_required
 def list_documents():
-    """Listar documentos según permisos del usuario"""
-    user_id = session['user_id']
-    user_role = session.get('role', 'abogado')
-    groups = load_groups()
+    team_folder = f"documents/{session['current_team']}"
     
-    # Obtener grupos del usuario
-    user_groups = []
-    for group_name, group_data in groups.items():
-        if user_id in group_data.get('members', []):
-            user_groups.append(group_name)
+    if not os.path.exists(team_folder):
+        return jsonify({'success': True, 'documents': []})
     
     documents = []
-    
-    if os.path.exists(app.config['UPLOAD_FOLDER']):
-        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-            if filename.endswith('.metadata'):
-                continue
-                
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if not os.path.isfile(filepath):
-                continue
-            
-            # Cargar metadata
-            metadata_file = filepath + '.metadata'
-            doc_group = ''
-            uploaded_by = ''
-            
-            if os.path.exists(metadata_file):
-                try:
-                    with open(metadata_file, 'r') as f:
-                        metadata = json.load(f)
-                        doc_group = metadata.get('group', '')
-                        uploaded_by = metadata.get('uploaded_by', '')
-                except:
-                    pass
-            
-            # Control de acceso
-            has_access = False
-            if user_role == 'director':
-                has_access = True
-            elif not doc_group:  # Sin grupo = todos pueden ver
-                has_access = True
-            elif doc_group in user_groups:
-                has_access = True
-            
-            if not has_access:
-                continue
-            
-            sig_file = os.path.join('signatures', f'firma_{filename}.json')
-            enc_file = filepath + '.enc'
-            
-            documents.append({
-                'name': filename,
-                'size': os.path.getsize(filepath),
-                'path': filepath,
-                'group': doc_group,
-                'uploaded_by': uploaded_by,
-                'has_signature': os.path.exists(sig_file),
-                'is_encrypted': os.path.exists(enc_file),
-                'modified': datetime.fromtimestamp(
-                    os.path.getmtime(filepath)
-                ).isoformat()
-            })
-    
-    return jsonify({'documents': documents})
-
-# ============================================================================
-# CIFRADO CON CONTROL DE GRUPOS
-# ============================================================================
-
-@app.route('/api/password/generate', methods=['POST'])
-@login_required
-def generate_aes_password():
-    try:
-        aes_key = secrets.token_bytes(32)
-        aes_key_b64 = base64.b64encode(aes_key).decode('utf-8')
+    for filename in os.listdir(team_folder):
+        filepath = os.path.join(team_folder, filename)
         
-        return jsonify({
-            'success': True,
-            'aes_key': aes_key_b64
+        # Determinar tipo de documento
+        doc_type = 'unknown'
+        if filename.endswith('.pdf'):
+            doc_type = 'original'
+        elif filename.endswith('.enc'):
+            doc_type = 'encrypted'
+        elif filename.endswith('.key'):
+            doc_type = 'key'
+        elif filename.endswith('.json'):
+            doc_type = 'signature'
+        
+        documents.append({
+            'filename': filename,
+            'type': doc_type,
+            'size': os.path.getsize(filepath),
+            'path': filepath
         })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    
+    return jsonify({'success': True, 'documents': documents})
 
-@app.route('/api/password/encrypt-for-group', methods=['POST'])
+@app.route('/api/documents/download/<path:filename>', methods=['GET'])
 @login_required
-def encrypt_password_for_group():
-    """Cifra contraseña para todos los miembros de un grupo"""
-    data = request.json
-    aes_password = data.get('aes_password')
-    group_name = data.get('group_name')
+def download_document(filename):
+    team_folder = f"documents/{session['current_team']}"
+    filepath = os.path.join(team_folder, secure_filename(filename))
     
-    if not aes_password or not group_name:
-        return jsonify({'error': 'Faltan parámetros'}), 400
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True)
     
-    groups = load_groups()
-    if group_name not in groups:
-        return jsonify({'error': 'Grupo no encontrado'}), 404
+    return jsonify({'success': False, 'error': 'Documento no encontrado'}), 404
+
+# ============= CIFRADO DE DOCUMENTOS =============
+
+@app.route('/api/encrypt/generate_aes', methods=['POST'])
+@login_required
+def generate_aes_key():
+    """Genera llave AES y la devuelve en base64"""
+    instances = get_user_instances(session['username'])
+    encryptor = instances['encryptor']
     
-    members = groups[group_name].get('members', [])
-    
-    if not members:
-        return jsonify({'error': 'El grupo no tiene miembros'}), 400
-    
-    user_id = session['user_id']
-    system = get_user_system(user_id)
-    
-    encrypted_files = []
-    errors = []
-    
-    for member_id in members:
-        try:
-            temp_file = f'temp_password_{user_id}_{member_id}.txt'
-            with open(temp_file, 'w') as f:
-                f.write(aes_password)
-            
-            result = system['key_encryptor'].encrypt_key_for_member(
-                temp_file,
-                member_id,
-                system['key_gen']
-            )
-            
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-            
-            if result['success']:
-                encrypted_files.append({
-                    'member': member_id,
-                    'file': result['encrypted_file']
-                })
-            else:
-                errors.append({
-                    'member': member_id,
-                    'error': result.get('error')
-                })
-        except Exception as e:
-            errors.append({
-                'member': member_id,
-                'error': str(e)
-            })
+    aes_key = encryptor.generar_clave_aes()
     
     return jsonify({
         'success': True,
-        'encrypted_count': len(encrypted_files),
-        'encrypted_files': encrypted_files,
-        'errors': errors
+        'aes_key': aes_key.decode('utf-8')
     })
 
 @app.route('/api/encrypt/document', methods=['POST'])
 @login_required
 def encrypt_document():
-    user_id = session['user_id']
-    system = get_user_system(user_id)
+    data = request.get_json()
+    filename = data.get('filename')
+    aes_key_b64 = data.get('aes_key')
     
-    data = request.json
-    file_path = data.get('file_path')
-    password = data.get('password')
+    team_folder = f"documents/{session['current_team']}"
+    filepath = os.path.join(team_folder, secure_filename(filename))
     
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({'error': 'Documento no encontrado'}), 404
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'error': 'Documento no encontrado'}), 404
     
-    if not password:
-        return jsonify({'error': 'Contraseña requerida'}), 400
+    instances = get_user_instances(session['username'])
+    encryptor = instances['encryptor']
     
-    try:
-        result = system['encryptor'].encrypt_document(file_path, password)
+    # Convertir llave de base64
+    aes_key = aes_key_b64.encode('utf-8')
+    
+    # Guardar llave temporalmente
+    key_file = os.path.join(team_folder, f"key_{filename}.key")
+    with open(key_file, 'wb') as f:
+        f.write(aes_key)
+    
+    # Cifrar documento
+    encrypted_file = os.path.join(team_folder, f"encrypted_{filename}.enc")
+    
+    if encryptor.cifrar_archivo(filepath, encrypted_file, aes_key):
+        return jsonify({
+            'success': True,
+            'encrypted_file': f"encrypted_{filename}.enc",
+            'key_file': f"key_{filename}.key"
+        })
+    
+    return jsonify({'success': False, 'error': 'Error al cifrar'}), 500
+
+@app.route('/api/encrypt/wrap_key', methods=['POST'])
+@login_required
+def wrap_aes_key():
+    """Cifra llave AES para un miembro del equipo"""
+    data = request.get_json()
+    key_filename = data.get('key_filename')
+    recipient = data.get('recipient')
+    
+    team_folder = f"documents/{session['current_team']}"
+    key_path = os.path.join(team_folder, secure_filename(key_filename))
+    recipient_public_key = f"keys/public_key_{recipient}.pem"
+    
+    if not os.path.exists(key_path):
+        return jsonify({'success': False, 'error': 'Llave AES no encontrada'}), 404
+    
+    if not os.path.exists(recipient_public_key):
+        return jsonify({'success': False, 'error': f'Llave pública de {recipient} no encontrada'}), 404
+    
+    instances = get_user_instances(session['username'])
+    key_encryptor = instances['key_encryptor']
+    
+    result = key_encryptor.encrypt_aes_key_for_recipient(key_path, recipient_public_key)
+    
+    if result['success']:
+        # Mover archivo cifrado al equipo con nombre apropiado
+        wrapped_filename = f"wrapped_key_for_{recipient}.enc"
+        wrapped_path = os.path.join(team_folder, wrapped_filename)
         
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'encrypted_file': result['encrypted_path'],
-                'metadata_file': result['metadata_path']
-            })
-        else:
-            return jsonify({'error': result.get('error')}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        if os.path.exists(result['encrypted_file']):
+            os.rename(result['encrypted_file'], wrapped_path)
+        
+        return jsonify({
+            'success': True,
+            'wrapped_file': wrapped_filename,
+            'recipient': recipient
+        })
+    
+    return jsonify(result), 500
+
+@app.route('/api/decrypt/unwrap_key', methods=['POST'])
+@login_required
+def unwrap_aes_key():
+    """Descifra llave AES envuelta"""
+    data = request.get_json()
+    wrapped_filename = data.get('wrapped_filename')
+    
+    team_folder = f"documents/{session['current_team']}"
+    wrapped_path = os.path.join(team_folder, secure_filename(wrapped_filename))
+    my_private_key = f"keys/private_key_{session['username']}.pem"
+    
+    if not os.path.exists(wrapped_path):
+        return jsonify({'success': False, 'error': 'Llave cifrada no encontrada'}), 404
+    
+    instances = get_user_instances(session['username'])
+    key_decryptor = instances['key_decryptor']
+    
+    result = key_decryptor.decrypt_aes_key_with_private(wrapped_path, my_private_key)
+    
+    if result['success']:
+        # Mover llave recuperada al equipo
+        recovered_filename = f"recovered_key_{session['username']}.key"
+        recovered_path = os.path.join(team_folder, recovered_filename)
+        
+        if os.path.exists(result['decrypted_file']):
+            os.rename(result['decrypted_file'], recovered_path)
+        
+        return jsonify({
+            'success': True,
+            'key_file': recovered_filename
+        })
+    
+    return jsonify(result), 500
 
 @app.route('/api/decrypt/document', methods=['POST'])
 @login_required
 def decrypt_document():
-    user_id = session['user_id']
-    system = get_user_system(user_id)
+    data = request.get_json()
+    encrypted_filename = data.get('encrypted_filename')
+    key_filename = data.get('key_filename')
     
-    data = request.json
-    encrypted_file = data.get('encrypted_file')
-    metadata_file = data.get('metadata_file')
-    password = data.get('password')
+    team_folder = f"documents/{session['current_team']}"
+    encrypted_path = os.path.join(team_folder, secure_filename(encrypted_filename))
+    key_path = os.path.join(team_folder, secure_filename(key_filename))
     
-    if not all([encrypted_file, metadata_file, password]):
-        return jsonify({'error': 'Faltan parámetros'}), 400
+    if not os.path.exists(encrypted_path) or not os.path.exists(key_path):
+        return jsonify({'success': False, 'error': 'Archivos no encontrados'}), 404
     
-    try:
-        result = system['decryptor'].decrypt_document(
-            encrypted_file, metadata_file, password
-        )
+    instances = get_user_instances(session['username'])
+    decryptor = instances['decryptor']
+    
+    result = decryptor.decrypt_with_keyfile(encrypted_path, key_path)
+    
+    if result['success']:
+        # Mover archivo descifrado al equipo
+        decrypted_filename = os.path.basename(result['decrypted_path'])
+        final_path = os.path.join(team_folder, decrypted_filename)
         
-        if result['success']:
-            return jsonify({
-                'success': True,
-                'decrypted_file': result['decrypted_path']
-            })
-        else:
-            return jsonify({'error': result.get('error')}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        if os.path.exists(result['decrypted_path']) and result['decrypted_path'] != final_path:
+            os.rename(result['decrypted_path'], final_path)
+        
+        return jsonify({
+            'success': True,
+            'decrypted_file': decrypted_filename
+        })
+    
+    return jsonify(result), 500
 
-# Continuar con las demás funciones del código original...
-# (Firmas digitales, estadísticas, etc.)
+# ============= FIRMAS DIGITALES =============
+
+@app.route('/api/sign/document', methods=['POST'])
+@login_required
+def sign_document():
+    data = request.get_json()
+    filename = data.get('filename')
+    
+    team_folder = f"documents/{session['current_team']}"
+    filepath = os.path.join(team_folder, secure_filename(filename))
+    
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'error': 'Documento no encontrado'}), 404
+    
+    instances = get_user_instances(session['username'])
+    signer = instances['signer']
+    
+    if not instances['key_gen'].private_key:
+        return jsonify({'success': False, 'error': 'Debe generar llaves primero'}), 400
+    
+    signature_package = signer.sign_document(filepath)
+    
+    # Guardar firma
+    sig_filename = f"firma_{session['username']}_{filename}.json"
+    sig_path = os.path.join(team_folder, sig_filename)
+    
+    with open(sig_path, 'w') as f:
+        json.dump(signature_package, f, indent=2)
+    
+    return jsonify({
+        'success': True,
+        'signature_file': sig_filename,
+        'document_hash': signature_package['document_hash']
+    })
+
+@app.route('/api/verify/signature', methods=['POST'])
+@login_required
+def verify_signature():
+    data = request.get_json()
+    filename = data.get('filename')
+    signature_files = data.get('signature_files', [])
+    
+    team_folder = f"documents/{session['current_team']}"
+    filepath = os.path.join(team_folder, secure_filename(filename))
+    
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'error': 'Documento no encontrado'}), 404
+    
+    instances = get_user_instances(session['username'])
+    verifier = instances['verifier']
+    
+    results = []
+    for sig_file in signature_files:
+        sig_path = os.path.join(team_folder, secure_filename(sig_file))
+        
+        if not os.path.exists(sig_path):
+            results.append({
+                'file': sig_file,
+                'valid': False,
+                'error': 'Archivo de firma no encontrado'
+            })
+            continue
+        
+        try:
+            with open(sig_path, 'r') as f:
+                signature_package = json.load(f)
+            
+            valid = verifier.verify_signature(signature_package, filepath)
+            
+            results.append({
+                'file': sig_file,
+                'user': signature_package.get('user_id'),
+                'valid': valid,
+                'hash': signature_package.get('document_hash')
+            })
+        except Exception as e:
+            results.append({
+                'file': sig_file,
+                'valid': False,
+                'error': str(e)
+            })
+    
+    return jsonify({
+        'success': True,
+        'results': results
+    })
 
 if __name__ == '__main__':
-    print("=" * 60)
-    print("  SISTEMA CRIPTOGRÁFICO LEGAL")
-    print("=" * 60)
-    
-    init_users_file()
-    init_groups_file()
-    
-    print(f"Servidor: http://localhost:5000")
-    print("=" * 60)
     app.run(debug=True, host='0.0.0.0', port=5000)
