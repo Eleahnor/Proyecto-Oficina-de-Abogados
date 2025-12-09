@@ -12,6 +12,21 @@ class KeyGenerator:
         self.public_key = None
         self.user_id = user_id
         self.team_public_keys = {}
+        
+        # Detectar si estamos en el contexto del servidor web
+        self.keys_dir = self._get_keys_directory()
+    
+    def _get_keys_directory(self):
+        """Determina el directorio correcto para las llaves"""
+        # Si estamos en el directorio raíz del proyecto
+        if os.path.exists('keys'):
+            return 'keys'
+        # Si estamos en un subdirectorio (como sign/)
+        elif os.path.exists('../keys'):
+            return '../keys'
+        # Directorio actual por defecto
+        else:
+            return '.'
     
     def generate_key_pair(self): 
         self.private_key = rsa.generate_private_key(
@@ -59,24 +74,33 @@ class KeyGenerator:
         user_id = user_id or self.user_id
         if not user_id:
             return False
-            
-        filename = f"private_key_{user_id}.pem"
-        try:
-            with open(filename, 'rb') as f:
-                private_pem = f.read()
-            
-            self.private_key = serialization.load_pem_private_key(
-                private_pem,
-                password=None,
-                backend=default_backend()
-            )
-            self.public_key = self.private_key.public_key()
-            self.user_id = user_id
-            print(f"✅ Llave privada cargada para usuario: {user_id}")
-            return True
-        except FileNotFoundError:
-            print(f"❌ Archivo de llave no encontrado: {filename}")
-            return False
+        
+        # Buscar en el directorio actual primero, luego en keys/
+        possible_paths = [
+            f"private_key_{user_id}.pem",
+            os.path.join(self.keys_dir, f"private_key_{user_id}.pem")
+        ]
+        
+        for filename in possible_paths:
+            try:
+                if os.path.exists(filename):
+                    with open(filename, 'rb') as f:
+                        private_pem = f.read()
+                    
+                    self.private_key = serialization.load_pem_private_key(
+                        private_pem,
+                        password=None,
+                        backend=default_backend()
+                    )
+                    self.public_key = self.private_key.public_key()
+                    self.user_id = user_id
+                    print(f"✅ Llave privada cargada para usuario: {user_id}")
+                    return True
+            except Exception as e:
+                continue
+        
+        print(f"❌ Archivo de llave no encontrado para: {user_id}")
+        return False
     
     def get_public_key_pem(self):
         if self.public_key:
@@ -122,32 +146,39 @@ class KeyGenerator:
     
     def load_public_keys_from_file(self, filename="public_keys.json"):
         """Carga llaves públicas desde archivo"""
-        try:
-            with open(filename, 'r') as f:
-                data = json.load(f)
-            
-            if data.get('public_key'):
-                self.public_key = serialization.load_pem_public_key(
-                    data['public_key'].encode('utf-8'),
-                    backend=default_backend()
-                )
-            
-            self.team_public_keys = {}
-            for member_id, key_pem in data.get('team_public_keys', {}).items():
-                self.team_public_keys[member_id] = serialization.load_pem_public_key(
-                    key_pem.encode('utf-8'),
-                    backend=default_backend()
-                )
-            
-            self.user_id = data.get('user_id')
-            print(f"✅ Llaves públicas cargadas desde: {filename}")
-            return True
-        except FileNotFoundError:
-            print(f"❌ Archivo de llaves públicas no encontrado: {filename}")
-            return False
-        except Exception as e:
-            print(f"❌ Error cargando llaves públicas: {e}")
-            return False
+        # Buscar en múltiples ubicaciones
+        possible_paths = [
+            filename,
+            os.path.join(self.keys_dir, filename)
+        ]
+        
+        for filepath in possible_paths:
+            try:
+                if os.path.exists(filepath):
+                    with open(filepath, 'r') as f:
+                        data = json.load(f)
+                    
+                    if data.get('public_key'):
+                        self.public_key = serialization.load_pem_public_key(
+                            data['public_key'].encode('utf-8'),
+                            backend=default_backend()
+                        )
+                    
+                    self.team_public_keys = {}
+                    for member_id, key_pem in data.get('team_public_keys', {}).items():
+                        self.team_public_keys[member_id] = serialization.load_pem_public_key(
+                            key_pem.encode('utf-8'),
+                            backend=default_backend()
+                        )
+                    
+                    self.user_id = data.get('user_id')
+                    print(f"✅ Llaves públicas cargadas desde: {filepath}")
+                    return True
+            except Exception as e:
+                continue
+        
+        print(f"❌ Archivo de llaves públicas no encontrado: {filename}")
+        return False
     
     def get_timestamp(self):
         """Obtiene timestamp actual"""
